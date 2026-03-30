@@ -10,9 +10,10 @@ export default function ChatScreen({ session, user, onBack }) {
   const recognitionRef = useRef(null);
 
   const speakText = (text) => {
-    if (!voiceMode) return;
+    window.speechSynthesis.cancel(); // Stop any current speaking
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "tr-TR";
+    utterance.rate = 0.9; // Slightly slower for better clarity
     window.speechSynthesis.speak(utterance);
   };
 
@@ -150,46 +151,62 @@ export default function ChatScreen({ session, user, onBack }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 pb-32">
+      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 pb-40">
         {messages.map(m => (
-          <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} items-end gap-2`}>
-            {m.sender === "mentor" && (
-              <div className="w-8 h-8 rounded-full bg-mintLight border border-mintBorder flex items-center justify-center shrink-0 mb-1">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-grass">
-                   <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                   <circle cx="12" cy="7" r="4" />
-                 </svg>
+          <div key={m.id} className={`flex flex-col ${m.sender === "user" ? "items-end" : "items-start"} gap-3`}>
+            <div className="flex items-center gap-3">
+              {m.sender === "mentor" && (
+                <div className="w-12 h-12 rounded-full bg-mintLight border-2 border-mintBorder flex items-center justify-center shrink-0">
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-grass">
+                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                     <circle cx="12" cy="7" r="4" />
+                   </svg>
+                </div>
+              )}
+              
+              <div className={`px-6 py-4 max-w-[85%] font-bold shadow-md text-xl relative group
+                ${m.sender === "user" ? "bg-grass text-white rounded-[28px] rounded-br-[4px]" : "bg-white border-2 border-borderSoft text-textMain rounded-[28px] rounded-bl-[4px]"}`}>
+                {m.text}
+                
+                {/* TTS Button */}
+                <button 
+                  onClick={() => speakText(m.text)}
+                  className={`absolute -top-4 ${m.sender === 'user' ? '-left-6' : '-right-6'} w-12 h-12 bg-white border-2 border-mintBorder rounded-full flex items-center justify-center shadow-lg hover:bg-mintLight transition-all active:scale-90`}
+                  title="Dinle"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-grass">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                  </svg>
+                </button>
               </div>
-            )}
-            <div className={`px-4 py-3 max-w-[75%] font-semibold shadow-sm text-[15px]
-              ${m.sender === "user" ? "bg-grass text-white rounded-[20px] rounded-br-[4px]" : "bg-white border border-borderSoft text-textMain rounded-[20px] rounded-bl-[4px]"}`}>
-              {m.text}
             </div>
           </div>
         ))}
       </div>
 
       {/* Input Area */}
-      <div className="fixed bottom-0 left-0 w-full p-4 bg-white border-t border-borderSoft flex gap-3 z-50 items-center pb-20 pt-4">
+      <div className="fixed bottom-0 left-0 w-full p-6 bg-white border-t-2 border-borderSoft flex gap-4 z-50 items-center shadow-[0_-10px_30px_rgba(0,0,0,0.05)] pb-12">
         <button 
           onClick={toggleRecording} 
-          className={`w-12 h-12 flex items-center justify-center rounded-full border-2 transition-all ${isRecording ? 'bg-red-50 border-red-200 text-red-500 animate-pulse' : 'bg-mintLight border-mintBorder text-grass'}`}
+          className={`w-16 h-16 flex items-center justify-center rounded-full border-4 transition-all shadow-xl ${isRecording ? 'bg-red-500 border-red-700 text-white animate-pulse' : 'bg-mintLight border-mintBorder text-grass hover:bg-mintMid'}`}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"></path>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-            <line x1="12" y1="19" x2="12" y2="22"></line>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
           </svg>
         </button>
         <input 
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleSend(input)}
-          className="input-soft flex-1 py-3 px-5"
-          placeholder="Bir mesaj yazın..."
+          className="input-soft flex-1 py-5 px-6 text-xl"
+          placeholder="İletiniz..."
         />
-        <button onClick={() => handleSend(input)} className="w-12 h-12 bg-grass rounded-full flex items-center justify-center text-white shadow-sm active:scale-95 transition-transform">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        <button onClick={() => handleSend(input)} className="w-16 h-16 bg-grass rounded-full flex items-center justify-center text-white shadow-xl active:scale-95 transition-transform border-b-4 border-forest">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
       </div>
     </div>

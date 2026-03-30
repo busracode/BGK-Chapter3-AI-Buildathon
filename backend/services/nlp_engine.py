@@ -46,10 +46,14 @@ class ResonanceScore:
 @dataclass
 class ElderProfileExtract:
     name: str
+    surname: str
     age: int
     city: str
     life_experiences: list[str]
     hobbies: list[str]
+    interests: list[str]
+    speaking_style: str
+    expertise_level: str
     personality_summary: str
 
 
@@ -60,35 +64,64 @@ GROQ_MODEL = "llama-3.3-70b-versatile"  # Ücretsiz, güçlü model
 async def extract_elder_profile(text: str) -> ElderProfileExtract:
     """Yaşlının sesli anlatımını ayrıştırıp yapılandırılmış JSON döner."""
     prompt = f"""
-Sen bilgileri çıkaran bir asistansın. Aşağıdaki mentörün (yaşlı) konuşmasından şu bilgileri JSON olarak çıkar. Eğer yaş veya isim net değilse tahminde bulun veya boş/0 bırak.
-{{
-  "name": "ismi",
-  "age": yaş(sayı),
-  "city": "şehir",
-  "life_experiences": ["tecrübe1", "tecrübe2"],
-  "hobbies": ["hobi1", "hobi2"],
-  "personality_summary": "1-2 cümlelik kişilik özeti"
-}}
+Sen bir profil uzmanısın. Yaşlı bir mentörün sesli kaydından (transkript) bilgilerini JSON olarak çıkar.
+Metin genellikle 'Benim adım Ahmet Yılmaz', 'Ben Ayşe teyze' veya 'İsmim Mehmet' gibi başlar.
+
+Şu bilgileri mutlaka bul:
+- "name": Kişinin ismi
+- "surname": Kişinin soyismi (varsa)
+- "age": Yaş (sayı)
+- "city": Yaşadığı şehir
+- "life_experiences": Hayat tecrübeleri (liste)
+- "hobbies": Hobiler (liste)
+- "interests": Özel ilgi alanları (liste)
+- "speaking_style": Konuşma tarzı (sakin, heyecanlı, bilgece vb.)
+- "expertise_level": Uzmanlık seviyesi/alanı (örneğin mühendislikte 40 yıl, çocuk eğitimi vb.)
+- "personality_summary": 1-2 cümlelik karakter özeti
 
 Metin: "{text}"
 
-Sadece JSON döndür.
+Gereksinimler:
+1. JSON formatı hatasız olmalı.
+2. Bilgi yoksa tahminde bulun, boş bırakma.
+3. Sadece JSON döndür.
 """
-    response = client.chat.completions.create(
-        model=GROQ_MODEL,
-        max_tokens=400,
-        messages=[{"role": "user", "content": prompt}],
-        response_format={"type": "json_object"},
-    )
-    data = json.loads(response.choices[0].message.content.strip())
-    return ElderProfileExtract(
-        name=data.get("name", "Bilinmiyor"),
-        age=int(data.get("age", 0)) if data.get("age") else 0,
-        city=data.get("city", "Bilinmiyor"),
-        life_experiences=data.get("life_experiences", []),
-        hobbies=data.get("hobbies", []),
-        personality_summary=data.get("personality_summary", ""),
-    )
+    try:
+        response = client.chat.completions.create(
+            model=GROQ_MODEL,
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+        data = json.loads(response.choices[0].message.content.strip())
+        print(f"DEBUG: NLP Extracted detailed data: {data}")
+        
+        return ElderProfileExtract(
+            name=data.get("name", "Bilinmiyor"),
+            surname=data.get("surname", ""),
+            age=int(data.get("age", 0)) if data.get("age") else 0,
+            city=data.get("city", "Bilinmiyor"),
+            life_experiences=data.get("life_experiences", []),
+            hobbies=data.get("hobbies", []),
+            interests=data.get("interests", []),
+            speaking_style=data.get("speaking_style", "Normal"),
+            expertise_level=data.get("expertise_level", "Genel"),
+            personality_summary=data.get("personality_summary", ""),
+        )
+    except Exception as e:
+        print(f"DEBUG: NLP Extraction Error: {e}")
+        return ElderProfileExtract(
+            name="Bilinmiyor",
+            surname="",
+            age=0,
+            city="Bilinmiyor",
+            life_experiences=[],
+            hobbies=[],
+            interests=[],
+            speaking_style="Normal",
+            expertise_level="Genel",
+            personality_summary="",
+        )
 
 async def analyze_emotion(text: str, user_role: str) -> EmotionProfile:
     """

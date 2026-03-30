@@ -4,6 +4,7 @@ export default function HomeScreen({ user, onStartChat }) {
   const [match, setMatch] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [stats, setStats] = useState({ session_count: 0, journal_count: 0 });
 
   const isBüyük = user?.role === "büyük";
 
@@ -14,6 +15,22 @@ export default function HomeScreen({ user, onStartChat }) {
       return () => clearInterval(interval);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchStats();
+    }
+  }, [user]);
+
+  const fetchStats = async () => {
+    try {
+      const resp = await fetch(`http://localhost:8000/api/users/${user.id}/stats`);
+      const data = await resp.json();
+      setStats(data);
+    } catch (e) {
+      console.error("Error fetching stats:", e);
+    }
+  };
 
   const fetchPendingRequests = async () => {
     try {
@@ -77,8 +94,8 @@ export default function HomeScreen({ user, onStartChat }) {
         <div className="blob w-32 h-32 -top-10 -right-10 bg-mintLight opacity-60"></div>
         <div className="flex justify-between items-end relative z-10">
           <div>
-            <p className="font-bold text-textMuted tracking-wide text-xs mb-1">Hoş Geldin</p>
-            <h2 className="text-3xl font-serif text-textMain tracking-tight">{user?.name}</h2>
+            <p className="font-bold text-textMuted tracking-wide text-sm mb-1 uppercase opacity-80">Hoş Geldin</p>
+            <h2 className="text-4xl font-serif text-textMain tracking-tight leading-tight">{user?.name}</h2>
           </div>
           <div className="w-12 h-12 bg-grass rounded-full flex items-center justify-center font-bold text-white text-xl shadow-sm">
             {user?.name?.[0] || "U"}
@@ -92,22 +109,22 @@ export default function HomeScreen({ user, onStartChat }) {
         {!isBüyük ? (
           /* GENÇ AKIŞI */
           !match ? (
-            <div className="card-soft border-dashed p-8 text-center animate-[fadeIn_0.5s_ease-out]">
-              <div className="mx-auto w-16 h-16 bg-mintLight rounded-2xl flex items-center justify-center mb-4">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-grass">
+            <div className="card-soft border-dashed p-10 text-center animate-[slideUp_0.6s_ease-out]">
+              <div className="mx-auto w-20 h-20 bg-mintLight rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-mintBorder">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-grass">
                   <path d="M17 18a5 5 0 0 0-10 0"></path>
                   <circle cx="12" cy="8" r="3"></circle>
                   <circle cx="18" cy="6" r="2"></circle>
                   <path d="M18 8v4M6 6v4"></path>
                 </svg>
               </div>
-              <p className="font-semibold text-textMuted mb-6">Henüz aktif bir eşleşmen yok.</p>
+              <p className="text-lg font-bold text-textMuted mb-8 px-4">Henüz aktif bir eşleşmen yok. Yeni bir arkadaşla tanışmaya ne dersin?</p>
               <button 
                 onClick={handleSearchMatch}
                 disabled={isSearching}
-                className="btn-primary w-full py-4 text-sm tracking-wider"
+                className="btn-primary w-full py-5 text-lg tracking-widest uppercase"
               >
-                {isSearching ? "Eşleşme Aranıyor..." : "YENİ EŞLEŞME BUL ✨"}
+                {isSearching ? "Aranıyor..." : "YENİ EŞLEŞME BUL ✨"}
               </button>
             </div>
           ) : (
@@ -123,8 +140,8 @@ export default function HomeScreen({ user, onStartChat }) {
                   </div>
                 </div>
                 
-                <h4 className="text-2xl font-serif font-bold text-textMain mb-2">{match.name}</h4>
-                <p className="font-semibold text-textMid text-sm mb-5 leading-relaxed bg-warmBg p-3 rounded-xl border border-borderSoft">
+                <h4 className="text-3xl font-serif font-black text-textMain mb-3 leading-tight">{match.name}</h4>
+                <p className="font-bold text-textMid text-base mb-6 leading-relaxed bg-warmBg p-4 rounded-2xl border border-borderSoft shadow-inner">
                   {match.description}
                 </p>
                 
@@ -170,11 +187,11 @@ export default function HomeScreen({ user, onStartChat }) {
                       %{Math.round(req.resonance_score)} Uyum
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button onClick={() => handleAccept(req.match_id)} className="btn-primary py-3 uppercase text-xs tracking-wider">
-                      kabul Et
+                  <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => handleAccept(req.match_id)} className="btn-primary py-4 uppercase text-sm tracking-widest">
+                      Kabul Et
                     </button>
-                    <button onClick={() => handleReject(req.match_id)} className="font-bold text-red-500 bg-red-50 py-3 rounded-xl uppercase text-xs tracking-wider border border-red-100 hover:bg-red-100 transition-colors">
+                    <button onClick={() => handleReject(req.match_id)} className="font-black text-red-500 bg-red-50 py-4 rounded-2xl uppercase text-sm tracking-widest border border-red-100 hover:bg-red-100 transition-all hover:shadow-md active:scale-95">
                       Reddet
                     </button>
                   </div>
@@ -191,15 +208,15 @@ export default function HomeScreen({ user, onStartChat }) {
             <div className="icon-wrapper w-10 h-10 bg-mintLight mb-3">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-grass"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
             </div>
-            <div className="text-3xl font-serif font-black text-textMain">12</div>
+            <div className="text-3xl font-serif font-black text-textMain">{stats.session_count}</div>
             <div className="font-bold text-sm text-textMuted mt-1">Oturum</div>
           </div>
           <div className="card-soft p-5 flex flex-col items-center">
             <div className="icon-wrapper w-10 h-10 bg-purpleBg mb-3">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purpleIcon"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
             </div>
-            <div className="text-3xl font-serif font-black text-textMain">4</div>
-            <div className="font-bold text-sm text-textMuted mt-1">Günlük</div>
+            <div className="text-4xl font-serif font-black text-textMain">{stats.journal_count}</div>
+            <div className="font-black text-base text-textMuted mt-2 uppercase tracking-tighter">Günlük</div>
           </div>
         </div>
       </div>

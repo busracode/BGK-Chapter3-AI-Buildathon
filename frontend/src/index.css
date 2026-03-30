@@ -37,6 +37,7 @@
     margin: 0;
     padding: 0;
     -webkit-font-smoothing: antialiased;
+    font-size: 1.25rem; /* Increased base font size */
   }
 }
 
@@ -47,26 +48,52 @@
   }
 
   .btn-primary {
-    @apply bg-grass text-white rounded-xl font-extrabold flex justify-center items-center transition-all duration-200 hover:opacity-90 active:scale-95;
+    @apply bg-grass text-white rounded-[28px] font-black flex justify-center items-center transition-all duration-300 hover:opacity-95 hover:shadow-2xl active:scale-90 py-6 px-10 text-2xl shadow-lg border-b-[6px] border-forest;
     font-family: 'Nunito', sans-serif;
   }
   
+  .btn-secondary {
+    @apply bg-mintLight text-grass rounded-[28px] font-black flex justify-center items-center transition-all duration-300 py-5 px-8 text-xl border-2 border-mintBorder shadow-sm;
+  }
+  
   .card-soft {
-    @apply bg-white border border-borderSoft rounded-2xl relative overflow-hidden;
+    @apply bg-white border-2 border-borderSoft rounded-[36px] relative overflow-hidden transition-all duration-300 hover:shadow-2xl;
   }
   
   .input-soft {
-    @apply bg-warmBg border border-mintMid rounded-[20px] focus:outline-none focus:border-grass focus:ring-1 focus:ring-grass;
+    @apply bg-white border-2 border-mintMid rounded-[24px] focus:outline-none focus:border-grass focus:ring-4 focus:ring-grass py-5 px-8 text-xl font-bold;
   }
   
   .pill-badge {
-    @apply rounded-full px-3 py-1 text-sm font-bold;
+    @apply rounded-full px-6 py-3 text-lg font-black;
+  }
+
+  /* Accessibility Focused Button for Speaking/Listening */
+  .btn-action-circle {
+    @apply w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-md active:scale-90 border-2;
   }
 }
 
 .blob {
   position: absolute;
-  border-radius: 60% 40% 70% 30%;
+  border-radius: 60% 40% 70% 30% / 40% 50% 60% 70%;
   background: var(--color-mint-border);
   opacity: 0.6;
+  animation: float 10s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+  0% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(5deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

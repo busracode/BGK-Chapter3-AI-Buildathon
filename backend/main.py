@@ -34,11 +34,19 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"],
+    allow_origins=["*"], # Temporarily widen for debug
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    from fastapi.responses import JSONResponse
+    import traceback
+    print(f"GLOBAL ERROR: {exc}")
+    traceback.print_exc()
+    return JSONResponse(status_code=500, content={"detail": f"Server Error: {str(exc)}"})
 
 # Router'ları ekle
 app.include_router(auth.router, prefix="/api/auth", tags=["Kimlik Doğrulama"])

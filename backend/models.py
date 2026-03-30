@@ -13,15 +13,24 @@ class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=generate_uuid)
     name = Column(String, nullable=False)
+    surname = Column(String, nullable=True) # New field
     age = Column(Integer, nullable=False)
     city = Column(String, nullable=True)
     role = Column(String, nullable=False) # "genç" or "büyük"
     primary_emotion = Column(String, nullable=True)
     experience_tags = Column(String, nullable=True) # JSON or CSV string
     hobbies = Column(String, nullable=True) # JSON or CSV string
+    interests = Column(String, nullable=True) # New field: More granular interests
+    speaking_style = Column(String, nullable=True) # New field: Analyzed from voice
+    expertise_level = Column(String, nullable=True) # New field: Analyzed for mentors
     life_experiences = Column(String, nullable=True) # JSON or CSV string
     personality_summary = Column(Text, nullable=True)
+    hashed_password = Column(String, nullable=True) # For young users
+    picture_password = Column(String, nullable=True) # For elderly users (sequence of icon IDs)
+    emergency_contact_name = Column(String, nullable=True) # New field
+    emergency_contact_phone = Column(String, nullable=True) # New field
     created_at = Column(DateTime, default=get_utc_now)
+    updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
 
 class MatchRequest(Base):
     __tablename__ = "match_requests"

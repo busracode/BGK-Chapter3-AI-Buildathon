@@ -1,6 +1,7 @@
 import { useState } from "react";
 import SplashScreen from "./screens/SplashScreen";
 import RegisterScreen from "./screens/RegisterScreen";
+import LoginScreen from "./screens/LoginScreen";
 import HomeScreen from "./screens/HomeScreen";
 import ChatScreen from "./screens/ChatScreen";
 import JournalScreen from "./screens/JournalScreen";
@@ -18,9 +19,20 @@ export default function App() {
     setScreen("register");
   };
 
+  const handleLoginSelect = (selectedRole) => {
+    setRole(selectedRole);
+    setScreen("login");
+  };
+
   const handleRegister = (registeredUser) => {
     setUser(registeredUser);
     setScreen("home");
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setRole(null);
+    setScreen("splash");
   };
 
   const navItems = [
@@ -32,13 +44,26 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-warmBg relative overflow-hidden">
-      {screen === "splash" && <SplashScreen onRoleSelect={handleRoleSelect} />}
+      {screen === "splash" && (
+        <SplashScreen 
+          onRoleSelect={handleRoleSelect} 
+          onLoginSelect={handleLoginSelect} 
+        />
+      )}
       
       {screen === "register" && (
         <RegisterScreen 
           role={role} 
           onSubmit={handleRegister} 
           onBack={() => setScreen("splash")} 
+        />
+      )}
+
+      {screen === "login" && (
+        <LoginScreen
+          role={role}
+          onSubmit={handleRegister} // handles setting user and going to home
+          onBack={() => setScreen("splash")}
         />
       )}
 
@@ -61,7 +86,7 @@ export default function App() {
             />
           )}
           {screen === "journal" && <JournalScreen user={user} />}
-          {screen === "profile" && <ProfileScreen user={user} />}
+          {screen === "profile" && <ProfileScreen user={user} onLogout={handleLogout} />}
 
           <BottomNav
             items={navItems}

@@ -1,4 +1,4 @@
-export default function SplashScreen({ onRoleSelect }) {
+export default function SplashScreen({ onRoleSelect, onLoginSelect }) {
   return (
     <div className="min-h-[100dvh] relative flex flex-col items-center justify-center p-6 pb-12 overflow-hidden animate-[fadeIn_0.5s_ease-out] bg-warmBg">
       
@@ -74,6 +74,24 @@ export default function SplashScreen({ onRoleSelect }) {
              />
           </div>
         </button>
+
+        <div className="pt-4 text-center">
+          <p className="text-sm font-bold text-textMuted mb-3">Zaten bir hesabın var mı?</p>
+          <div className="flex gap-3">
+             <button 
+               onClick={() => onLoginSelect("genç")}
+               className="flex-1 py-3 px-4 bg-white border border-borderSoft rounded-xl font-bold text-xs text-textMain shadow-sm active:scale-95 transition-transform"
+             >
+               GENÇ GİRİŞİ
+             </button>
+             <button 
+               onClick={() => onLoginSelect("büyük")}
+               className="flex-1 py-3 px-4 bg-white border border-borderSoft rounded-xl font-bold text-xs text-textMain shadow-sm active:scale-95 transition-transform"
+             >
+               BÜYÜK GİRİŞİ
+             </button>
+          </div>
+        </div>
       </div>
     </div>
   );

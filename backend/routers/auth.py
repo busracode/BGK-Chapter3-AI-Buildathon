@@ -6,7 +6,15 @@ from models import User
 from schemas import UserCreate, UserLogin, UserResponse
 from services.nlp_engine import analyze_emotion
 
+from passlib.hash import bcrypt
+
 router = APIRouter()
+
+def hash_password(password: str) -> str:
+    return bcrypt.hash(password)
+
+def verify_password(password: str, hashed_password: str) -> bool:
+    return bcrypt.verify(password, hashed_password)
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
@@ -24,7 +32,9 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         city=user_in.city,
         role=user_in.role,
         primary_emotion=primary_emotion,
-        experience_tags=experience_tags
+        experience_tags=experience_tags,
+        hashed_password=hash_password(user_in.password) if user_in.password else None,
+        picture_password=user_in.picture_password
     )
     db.add(new_user)
     await db.commit()
@@ -33,10 +43,18 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=UserResponse)
 async def login(login_in: UserLogin, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.id == login_in.user_id))
+    result = await db.execute(select(User).where(User.name == login_in.name))
     user = result.scalars().first()
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
+    
+    if user.role == "genç":
+        if not login_in.password or not user.hashed_password or not verify_password(login_in.password, user.hashed_password):
+            raise HTTPException(status_code=400, detail="Hatalı şifre")
+    elif user.role == "büyük":
+        if not login_in.picture_password or login_in.picture_password != user.picture_password:
+            raise HTTPException(status_code=400, detail="Hatalı resim parolası")
+            
     return user
 
 @router.get("/me/{user_id}", response_model=UserResponse)
