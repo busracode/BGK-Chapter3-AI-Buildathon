@@ -1,0 +1,63 @@
+# ==============================
+# GÜVENLİK VE GİZLİLİK (En Önemlisi)
+# ==============================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+
+# ==============================
+# PYTHON / BACKEND (FastAPI)
+# ==============================
+# Byte-compiled / optimized / DLL dosyaları
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Sanal Ortamlar (Virtual Environments)
+venv/
+.venv/
+env/
+ENV/
+
+# Veritabanı (Geliştirme DB'sini GitHub'a atmamak için)
+*.sqlite
+*.sqlite3
+*.db
+backend/hayat_koprusu.db
+
+# Log ve Test Araçları
+*.log
+.pytest_cache/
+.coverage
+
+# ==============================
+# JAVASCRIPT / FRONTEND (React & Vite)
+# ==============================
+# Bağımlılıklar (Asla sunucuya gönderilmez, `npm install` ile tekrar kurulur)
+node_modules/
+frontend/node_modules/
+
+# Derleme ve Üretim Çıktıları
+dist/
+dist-ssr/
+build/
+out/
+frontend/dist/
+
+# NPM Hata Kayıtları
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==============================
+# EDİTÖR VE İŞLETİM SİSTEMİ
+# ==============================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.vs/
+.eslintcache
