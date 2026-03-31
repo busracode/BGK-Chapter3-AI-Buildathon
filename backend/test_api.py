@@ -3,7 +3,7 @@ import asyncio
 
 async def test_api():
     base_url = "http://localhost:8000/api"
-    print("=== Testing Hayat Köprüsü API ===")
+    print("=== Testing Hayat Ağacı API ===")
     
     async with httpx.AsyncClient() as client:
         # 1. Test Auth Register

@@ -1,10 +1,10 @@
-# 🌉 Hayat Köprüsü — Life Bridge
+# 🌳 Hayat Ağacı — Tree of Life
 
 > Nesilleri birbirine bağlayan, yapay zeka destekli akıllı mentörlük ve refakat platformu.
 
 ## 🌟 Proje Vizyonu
 
-**Hayat Köprüsü**, teknolojiyi dışlayıcı değil, kapsayıcı bir araç olarak kullanarak gençlerin dinamizmi ile yaşlıların hayat tecrübesini buluşturur. Yapay zeka, bu köprüde hem bir **akıllı rehber** hem de bir **güvenlik nöbetçisi** görevini üstlenir.
+**Hayat Ağacı**, teknolojiyi dışlayıcı değil, kapsayıcı bir araç olarak kullanarak gençlerin dinamizmi ile yaşlıların hayat tecrübesini buluşturur. Yapay zeka, bu köprüde hem bir **akıllı rehber** hem de bir **güvenlik nöbetçisi** görevini üstlenir.
 
 ## 🛠️ Uygulama Özellikleri
 
@@ -66,5 +66,5 @@ uvicorn main:app --reload
 
 ---
 
-🔗 **İletişim**: [hayatkoprusu.app](https://hayatkoprusu.app)
+🔗 **İletişim**: [hayatagaci.app](https://hayatagaci.app)
 

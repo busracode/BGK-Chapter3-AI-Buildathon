@@ -1,7 +1,7 @@
 import sqlite3
 import os
 
-db_path = r"c:\Users\bsrac\OneDrive\Masaüstü\AI Buildathon\backend\hayat_koprusu.db"
+db_path = r"c:\Users\bsrac\OneDrive\Masaüstü\AI Buildathon\backend\hayat_agaci.db"
 
 if not os.path.exists(db_path):
     print("Database not found.")

@@ -1,6 +1,6 @@
 # backend/services/nlp_engine.py
 """
-NLP Motoru — Hayat Köprüsü
+NLP Motoru — Hayat Ağacı
 Duygu analizi, eşleştirme skoru ve kriz tespiti
 """
 

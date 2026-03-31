@@ -31,7 +31,7 @@ export default function SplashScreen({ onRoleSelect, onLoginSelect }) {
         
         {/* Cam (Glass) efektli başlık alanı zemin desteği */}
         <div className="bg-[rgba(255,255,255,0.82)] backdrop-blur-[2px] px-8 py-4 rounded-[20px] text-center border border-white/50 shadow-sm">
-           <h1 className="text-4xl font-serif font-black text-textMain tracking-tight">Hayat Köprüsü</h1>
+           <h1 className="text-4xl font-serif font-black text-textMain tracking-tight">Hayat Ağacı</h1>
            <p className="text-textMid font-sans mt-3 px-2 leading-relaxed font-semibold">
              Hayat boyu edinilen tecrübelerin,<br/>geleceği aydınlattığı yer.
            </p>

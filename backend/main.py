@@ -1,6 +1,6 @@
 # backend/main.py
 """
-Hayat Köprüsü — FastAPI Backend
+Hayat Ağacı — FastAPI Backend
 Kuşaklararası AI Mentörlük Platformu
 """
 
@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Hayat Köprüsü API",
+    title="Hayat Ağacı API",
     description="AI destekli kuşaklararası mentörlük platformu",
     version="1.0.0",
     lifespan=lifespan,
@@ -59,7 +59,7 @@ app.include_router(moderation.router, prefix="/api/moderation", tags=["Moderasyo
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "Hayat Köprüsü API"}
+    return {"status": "ok", "service": "Hayat Ağacı API"}
 
 
 if __name__ == "__main__":
