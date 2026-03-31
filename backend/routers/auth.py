@@ -4,58 +4,114 @@ from sqlalchemy.future import select
 from database import get_db
 from models import User
 from schemas import UserCreate, UserLogin, UserResponse
-from services.nlp_engine import analyze_emotion
+from services.nlp_engine import analyze_emotion, extract_needs_summary
 
-from passlib.hash import bcrypt
+import random
+from routers.users import pwd_context
 
 router = APIRouter()
 
 def hash_password(password: str) -> str:
-    return bcrypt.hash(password)
+    # Use CryptContext (argon2) to completely bypass bcrypt 72 byte limits
+    return pwd_context.hash(password)
 
 def verify_password(password: str, hashed_password: str) -> bool:
-    return bcrypt.verify(password, hashed_password)
+    return pwd_context.verify(password, hashed_password)
+
+def normalize_turkish_chars(text: str) -> str:
+    if not text:
+        return ""
+    tr_map = {
+        'ğ': 'g', 'ü': 'u', 'ş': 's', 'ı': 'i', 'ö': 'o', 'ç': 'c',
+        'Ğ': 'g', 'Ü': 'u', 'Ş': 's', 'İ': 'i', 'Ö': 'o', 'Ç': 'c'
+    }
+    for tr, en in tr_map.items():
+        text = text.replace(tr, en)
+    return text.lower()
 
 @router.post("/register", response_model=UserResponse)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     try:
-        emotion_profile = await analyze_emotion(user_in.current_mood_text, user_in.role)
-        primary_emotion = emotion_profile.primary_emotion.value
-        experience_tags = ",".join(emotion_profile.experience_tags)
-    except Exception as e:
-        primary_emotion = "nötr"
-        experience_tags = ""
+        try:
+            emotion_profile = await analyze_emotion(user_in.current_mood_text, user_in.role)
+            primary_emotion = emotion_profile.primary_emotion.value
+            experience_tags = ",".join(emotion_profile.experience_tags)
+            
+            if user_in.role == "genç":
+                personality_summary = await extract_needs_summary(user_in.current_mood_text)
+            else:
+                personality_summary = emotion_profile.summary
+                
+        except Exception:
+            primary_emotion = "nötr"
+            experience_tags = ""
+            personality_summary = ""
 
-    new_user = User(
-        name=user_in.name,
-        age=user_in.age,
-        city=user_in.city,
-        role=user_in.role,
-        primary_emotion=primary_emotion,
-        experience_tags=experience_tags,
-        hashed_password=hash_password(user_in.password) if user_in.password else None,
-        picture_password=user_in.picture_password
-    )
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-    return new_user
+        if getattr(user_in, 'username', None):
+            base_username = normalize_turkish_chars(user_in.username.strip().replace(" ", ""))
+        else:
+            name_part = normalize_turkish_chars(user_in.name.strip().replace(" ", ""))
+            surname_part = normalize_turkish_chars(user_in.surname.strip().replace(" ", "")) if user_in.surname else ""
+            base_username = f"{name_part}.{surname_part}" if surname_part else name_part
+            
+        username = base_username
+        
+        while True:
+            result = await db.execute(select(User).where(User.username == username))
+            if not result.scalars().first():
+                break
+            username = f"{base_username}{random.randint(100, 999)}"
+
+        hashed_password = None
+        picture_password = None
+        
+        if user_in.role == "genç":
+            hashed_password = hash_password(user_in.password) if user_in.password else None
+        elif user_in.role == "büyük":
+            picture_password = user_in.picture_password
+            
+        new_user = User(
+            username=username,
+            name=user_in.name,
+            surname=user_in.surname,
+            age=user_in.age,
+            city=user_in.city,
+            role=user_in.role,
+            primary_emotion=primary_emotion,
+            experience_tags=experience_tags,
+            personality_summary=personality_summary,
+            hashed_password=hashed_password,
+            picture_password=picture_password
+        )
+        db.add(new_user)
+        await db.commit()
+        await db.refresh(new_user)
+        return new_user
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Kayıt işlemi sırasında bir hata oluştu: {str(e)}")
 
 @router.post("/login", response_model=UserResponse)
 async def login(login_in: UserLogin, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.name == login_in.name))
-    user = result.scalars().first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı")
-    
-    if user.role == "genç":
-        if not login_in.password or not user.hashed_password or not verify_password(login_in.password, user.hashed_password):
-            raise HTTPException(status_code=400, detail="Hatalı şifre")
-    elif user.role == "büyük":
-        if not login_in.picture_password or login_in.picture_password != user.picture_password:
-            raise HTTPException(status_code=400, detail="Hatalı resim parolası")
-            
-    return user
+    try:
+        auth_error = HTTPException(status_code=401, detail="Geçersiz kullanıcı adı veya şifre")
+
+        result = await db.execute(select(User).where(User.username == login_in.username))
+        user = result.scalars().first()
+        if not user:
+            raise auth_error
+        
+        if user.role == "genç":
+            if not login_in.password or not user.hashed_password or not verify_password(login_in.password, user.hashed_password):
+                raise auth_error
+        elif user.role == "büyük":
+            if not login_in.picture_password or login_in.picture_password != user.picture_password:
+                raise auth_error
+                
+        return user
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Giriş işlemi sırasında sunucu hatası oluştu: {str(e)}")
 
 @router.get("/me/{user_id}", response_model=UserResponse)
 async def get_me(user_id: str, db: AsyncSession = Depends(get_db)):

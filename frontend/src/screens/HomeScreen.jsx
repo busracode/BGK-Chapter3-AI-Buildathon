@@ -9,18 +9,22 @@ export default function HomeScreen({ user, onStartChat }) {
   const isBüyük = user?.role === "büyük";
 
   useEffect(() => {
-    if (isBüyük && user?.id) {
-      fetchPendingRequests();
-      const interval = setInterval(fetchPendingRequests, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [user]);
-
-  useEffect(() => {
     if (user?.id) {
       fetchStats();
+      fetchActiveMatch();
+      let interval;
+      if (isBüyük) {
+        fetchPendingRequests();
+        interval = setInterval(() => {
+          fetchPendingRequests();
+          fetchActiveMatch();
+        }, 5000);
+      } else {
+        interval = setInterval(fetchActiveMatch, 5000);
+      }
+      return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user, isBüyük]);
 
   const fetchStats = async () => {
     try {
@@ -42,20 +46,47 @@ export default function HomeScreen({ user, onStartChat }) {
     }
   };
 
+  const fetchActiveMatch = async () => {
+    try {
+      const resp = await fetch(`http://localhost:8000/api/matches/active/${user.id}`);
+      const data = await resp.json();
+      if (data && data.status) {
+        let title = "";
+        let desc = "";
+        if (data.status === "pending" && !isBüyük) {
+           title = "Eşleşme Bekleniyor";
+           desc = "Büyük mentörünüzün eşleştirme isteğinizi onaylaması bekleniyor. Lütfen bekleyin.";
+        } else if (data.status === "accepted") {
+           title = isBüyük ? "Eşleşme Onaylandı" : "Mentör Onayladı";
+           desc = isBüyük ? "Eşleşme onaylandı. Dilediğiniz zaman sohbeti başlatabilirsiniz." : `Büyük mentörünüz (${data.other_name}) sizinle görüşmeyi kabul etti!`;
+        } else if (data.status === "chat_started") {
+           title = "Sohbet Başladı";
+           desc = `${data.other_name} sohbeti başlattı. Oda aktif.`;
+        }
+
+        setMatch({
+          id: data.id,
+          session_id: data.session_id,
+          status: data.status,
+          name: data.other_name,
+          title: title,
+          description: desc
+        });
+      } else {
+        setMatch(null);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleSearchMatch = async () => {
     setIsSearching(true);
     try {
-      const resp = await fetch(`http://localhost:8000/api/matches/find?user_id=${user.id}`, {
+      await fetch(`http://localhost:8000/api/matches/find?user_id=${user.id}`, {
         method: "POST"
       });
-      const data = await resp.json();
-      setMatch({
-        id: data.id,
-        session_id: null,
-        name: "Eşleşme Bekleniyor",
-        age: "",
-        description: "Büyük mentörünüzün eşleştirme isteğinizi onaylaması bekleniyor."
-      });
+      await fetchActiveMatch();
     } catch (e) {
       console.error(e);
       alert("Eşleşme sırasında bir hata oluştu.");
@@ -66,13 +97,25 @@ export default function HomeScreen({ user, onStartChat }) {
 
   const handleAccept = async (reqId) => {
     try {
-      const resp = await fetch(`http://localhost:8000/api/matches/accept/${reqId}`, { method: "POST" });
+      await fetch(`http://localhost:8000/api/matches/accept/${reqId}`, { method: "POST" });
+      fetchPendingRequests();
+      fetchActiveMatch();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleStartChat = async (reqId, otherName) => {
+    try {
+      const resp = await fetch(`http://localhost:8000/api/matches/start-chat/${reqId}`, { method: "POST" });
       const data = await resp.json();
-      onStartChat({
-        id: reqId,
-        session_id: data.session_id,
-        name: "Genç Arkadaş"
-      });
+      if (data.session_id) {
+         onStartChat({
+           id: reqId,
+           session_id: data.session_id,
+           name: otherName
+         });
+      }
     } catch (e) {
       console.error(e);
     }
@@ -106,98 +149,112 @@ export default function HomeScreen({ user, onStartChat }) {
       <div className="px-6 space-y-6">
         <h3 className="text-xl font-serif text-textMain">Eşleşmeler</h3>
         
-        {!isBüyük ? (
-          /* GENÇ AKIŞI */
-          !match ? (
-            <div className="card-soft border-dashed p-10 text-center animate-[slideUp_0.6s_ease-out]">
-              <div className="mx-auto w-20 h-20 bg-mintLight rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-mintBorder">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-grass">
-                  <path d="M17 18a5 5 0 0 0-10 0"></path>
-                  <circle cx="12" cy="8" r="3"></circle>
-                  <circle cx="18" cy="6" r="2"></circle>
-                  <path d="M18 8v4M6 6v4"></path>
-                </svg>
+        {match && (match.status === "accepted" || match.status === "chat_started" || (!isBüyük && match.status === "pending")) ? (
+          <div className="card-soft border-[1.5px] border-mintBorder p-5 animate-[fadeIn_0.5s_ease-out] relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-[3px] bg-grass"></div>
+            <div className="blob w-32 h-32 -top-10 -right-10 bg-mintLight opacity-60"></div>
+            
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-3">
+                <div className="pill-badge bg-mintLight text-textMain flex items-center gap-2">
+                  {match.status === "chat_started" || match.status === "accepted" ? (
+                     <span className="w-2 h-2 rounded-full bg-grass animate-[pulse_1.4s_infinite]"></span>
+                  ) : null}
+                  {match.title}
+                </div>
               </div>
-              <p className="text-lg font-bold text-textMuted mb-8 px-4">Henüz aktif bir eşleşmen yok. Yeni bir arkadaşla tanışmaya ne dersin?</p>
-              <button 
-                onClick={handleSearchMatch}
-                disabled={isSearching}
-                className="btn-primary w-full py-5 text-lg tracking-widest uppercase"
-              >
-                {isSearching ? "Aranıyor..." : "YENİ EŞLEŞME BUL ✨"}
-              </button>
-            </div>
-          ) : (
-            <div className="card-soft border-[1.5px] border-mintBorder p-5 animate-[fadeIn_0.5s_ease-out]">
-              <div className="absolute top-0 left-0 w-full h-[3px] bg-grass"></div>
-              <div className="blob w-32 h-32 -top-10 -right-10 bg-mintLight opacity-60"></div>
               
-              <div className="relative z-10">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="pill-badge bg-mintLight text-textMain flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-grass animate-[pulse_1.4s_infinite]"></span>
-                    Yapay Zeka Eşleşmesi
-                  </div>
-                </div>
-                
-                <h4 className="text-3xl font-serif font-black text-textMain mb-3 leading-tight">{match.name}</h4>
-                <p className="font-bold text-textMid text-base mb-6 leading-relaxed bg-warmBg p-4 rounded-2xl border border-borderSoft shadow-inner">
-                  {match.description}
-                </p>
-                
-                {match.session_id && (
-                  <button 
-                    onClick={() => onStartChat(match)}
-                    className="btn-primary w-full py-3"
-                  >
-                    Sohbete Başla →
-                  </button>
-                )}
-              </div>
+              <h4 className="text-3xl font-serif font-black text-textMain mb-3 leading-tight">{match.name || "Eşleşme Bekleniyor"}</h4>
+              <p className="font-bold text-textMid text-base mb-6 leading-relaxed bg-warmBg p-4 rounded-2xl border border-borderSoft shadow-inner">
+                {match.description}
+              </p>
+              
+              {match.status === "accepted" && (
+                <button 
+                  onClick={() => handleStartChat(match.id, match.name)}
+                  className="btn-primary w-full py-4 uppercase tracking-wider text-base shadow-md hover:-translate-y-1 transition-transform"
+                >
+                  Sohbete Başla
+                </button>
+              )}
+              {match.status === "chat_started" && match.session_id && (
+                <button 
+                  onClick={() => onStartChat(match)}
+                  className="btn-primary w-full py-4 uppercase tracking-wider text-base shadow-[0_5px_15px_rgba(40,167,69,0.3)] animate-[pulse_2s_infinite]"
+                >
+                  Sohbete Gir →
+                </button>
+              )}
+              {match.status === "pending" && (
+                <button disabled className="bg-mintMid text-grass shrink-0 w-full py-4 rounded-[16px] font-black uppercase tracking-wider border border-mintBorder opacity-80 cursor-wait">
+                  Onay Bekleniyor...
+                </button>
+              )}
             </div>
-          )
-        ) : (
-          /* BÜYÜK AKIŞI */
+          </div>
+        ) : !isBüyük ? (
+          <div className="card-soft border-dashed p-10 text-center animate-[slideUp_0.6s_ease-out]">
+            <div className="mx-auto w-20 h-20 bg-mintLight rounded-3xl flex items-center justify-center mb-6 shadow-sm border border-mintBorder">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-grass">
+                <path d="M17 18a5 5 0 0 0-10 0"></path>
+                <circle cx="12" cy="8" r="3"></circle>
+                <circle cx="18" cy="6" r="2"></circle>
+                <path d="M18 8v4M6 6v4"></path>
+              </svg>
+            </div>
+            <p className="text-lg font-bold text-textMuted mb-8 px-4">Henüz aktif bir eşleşmen yok. Yeni bir arkadaşla tanışmaya ne dersin?</p>
+            <button 
+              onClick={handleSearchMatch}
+              disabled={isSearching}
+              className="btn-primary w-full py-5 text-lg tracking-widest uppercase"
+            >
+              {isSearching ? "Aranıyor..." : "YENİ EŞLEŞME BUL ✨"}
+            </button>
+          </div>
+        ) : null}
+
+        {isBüyük && pendingRequests.length === 0 && (!match || match.status === "pending") && (
+          <div className="card-soft p-8 text-center border-dashed mb-6">
+            <p className="font-semibold text-textMuted">Şu an bekleyen bir görüşme talebiniz veya aktif eşleşmeniz yok.</p>
+          </div>
+        )}
+
+        {isBüyük && pendingRequests.length > 0 && (
           <div className="space-y-4">
-            {pendingRequests.length === 0 ? (
-              <div className="card-soft p-8 text-center border-dashed">
-                <p className="font-semibold text-textMuted">Şu an bekleyen bir görüşme talebiniz yok.</p>
-              </div>
-            ) : (
-              pendingRequests.map(req => (
-                <div key={req.match_id} className="card-soft border-[1.5px] border-mintBorder p-5 animate-[fadeIn_0.5s_ease-out]">
-                  <div className="absolute top-0 left-0 w-full h-[3px] bg-grass"></div>
-                  <h4 className="text-lg font-bold text-textMain mb-3 block">Seninle konuşmak isteyen biri var!</h4>
-                  <div className="bg-mintLight rounded-xl p-4 mb-5 border border-mintBorder">
-                    <div className="flex items-center gap-3 mb-2">
-                       <div className="w-10 h-10 bg-white rounded-full flex justify-center items-center shadow-sm">
-                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-grass">
-                            <path d="M12 20 L12 10" />
-                            <path d="M12 14 Q8 11 6 12" />
-                            <path d="M12 12 Q16 9 18 10" />
-                         </svg>
-                       </div>
-                       <div>
-                         <p className="font-bold text-textMain leading-tight">{req.young_name}, {req.young_age}</p>
-                         <p className="text-xs text-textMid">{req.young_city}</p>
-                       </div>
-                    </div>
-                    <p className="text-sm font-semibold text-textMid mt-3">Duygu: <span className="capitalize">{req.young_emotion}</span></p>
-                    <div className="inline-block mt-3 pill-badge bg-white border border-borderSoft text-grass text-xs">
-                      %{Math.round(req.resonance_score)} Uyum
-                    </div>
+            <h3 className="text-lg font-bold text-textMain mb-3">Bekleyen İstekler</h3>
+            {pendingRequests.map(req => (
+              <div key={req.match_id} className="card-soft border-[1.5px] border-mintBorder p-5 animate-[fadeIn_0.5s_ease-out] mb-4">
+                <div className="absolute top-0 left-0 w-full h-[3px] bg-grass"></div>
+                <h4 className="text-lg font-bold text-textMain mb-3 block">Seninle konuşmak isteyen biri var!</h4>
+                <div className="bg-mintLight rounded-xl p-4 mb-5 border border-mintBorder">
+                  <div className="flex items-center gap-3 mb-2">
+                     <div className="w-10 h-10 bg-white rounded-full flex justify-center items-center shadow-sm">
+                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-grass">
+                          <path d="M12 20 L12 10" />
+                          <path d="M12 14 Q8 11 6 12" />
+                          <path d="M12 12 Q16 9 18 10" />
+                       </svg>
+                     </div>
+                     <div>
+                       <p className="font-bold text-textMain leading-tight">{req.young_name}, {req.young_age}</p>
+                       <p className="text-xs text-textMid">{req.young_city}</p>
+                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => handleAccept(req.match_id)} className="btn-primary py-4 uppercase text-sm tracking-widest">
-                      Kabul Et
-                    </button>
-                    <button onClick={() => handleReject(req.match_id)} className="font-black text-red-500 bg-red-50 py-4 rounded-2xl uppercase text-sm tracking-widest border border-red-100 hover:bg-red-100 transition-all hover:shadow-md active:scale-95">
-                      Reddet
-                    </button>
+                  <p className="text-sm font-semibold text-textMid mt-3">Duygu: <span className="capitalize">{req.young_emotion}</span></p>
+                  <div className="inline-block mt-3 pill-badge bg-white border border-borderSoft text-grass text-xs">
+                    %{Math.round(req.resonance_score)} Uyum
                   </div>
                 </div>
-              ))
-            )}
+                <div className="grid grid-cols-2 gap-4">
+                  <button onClick={() => handleAccept(req.match_id)} className="btn-primary py-4 uppercase text-sm tracking-widest">
+                    Kabul Et
+                  </button>
+                  <button onClick={() => handleReject(req.match_id)} className="font-black text-red-500 bg-red-50 py-4 rounded-2xl uppercase text-sm tracking-widest border border-red-100 hover:bg-red-100 transition-all hover:shadow-md active:scale-95">
+                    Reddet
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

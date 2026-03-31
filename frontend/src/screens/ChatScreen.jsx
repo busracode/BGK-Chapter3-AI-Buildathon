@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 
 export default function ChatScreen({ session, user, onBack }) {
-  const [messages, setMessages] = useState([
-    { id: 1, sender: "mentor", text: "Merhaba, nasılsın? Bugün konuşalım mı?" }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [voiceMode, setVoiceMode] = useState(user?.role === "büyük");
+  const [riskAlert, setRiskAlert] = useState(false);
   const recognitionRef = useRef(null);
 
   const speakText = (text) => {
@@ -36,10 +35,35 @@ export default function ChatScreen({ session, user, onBack }) {
     }
   };
 
+  const fetchMessages = async () => {
+    if (!session?.session_id) return;
+    try {
+      const resp = await fetch(`http://localhost:8000/api/chat/messages/${session.session_id}`);
+      const data = await resp.json();
+      
+      const formatted = data.map(m => ({
+        id: m.id,
+        sender: m.sender_id === user.id ? "user" : "mentor", // We use "mentor" as the abstract "other person" for CSS styling
+        text: m.text
+      }));
+      setMessages(formatted);
+    } catch (e) {
+      console.error("Fetch messages error", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
+  }, [session?.session_id]);
+
   const handleSend = async (messageText = input) => {
     if (!messageText || !user) return;
     
-    const newMsg = { id: Date.now(), sender: "user", text: messageText };
+    // Optimistic Update
+    const tempId = Date.now();
+    const newMsg = { id: tempId, sender: "user", text: messageText };
     setMessages(prev => [...prev, newMsg]);
     if(messageText === input) setInput(""); 
     
@@ -56,23 +80,22 @@ export default function ChatScreen({ session, user, onBack }) {
       });
       const data = await resp.json();
       
+      if (data.is_risky) {
+         setRiskAlert(true);
+      }
+      
       if (data.crisis_level && data.crisis_level !== "yok") {
          await checkAndAlertThreat(data.crisis_level, messageText);
       }
       
-      const replyText = data.reply || "Anlaşılamadı.";
-      setMessages(prev => [...prev, { 
-        id: Date.now()+1, 
-        sender: "mentor", 
-        text: replyText
-      }]);
-
-      speakText(replyText);
+      // Polling will fetch the updated list including this message from the DB
+      fetchMessages();
 
     } catch(e) {
-      setTimeout(() => {
-        setMessages(prev => [...prev, { id: Date.now()+1, sender: "mentor", text: "Bağlantı koptu. Lütfen tekrar dene." }]);
-      }, 1000);
+      console.error("Message send failed:", e);
+      // Remove temporary message if it totally failed to reach network
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      alert("Mesaj gönderilemedi, bağlantınızı kontrol edin.");
     }
   };
 
@@ -142,6 +165,24 @@ export default function ChatScreen({ session, user, onBack }) {
         </button>
       </div>
 
+      {riskAlert && (
+          <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-6 animate-[fadeIn_0.3s_ease-out]">
+            <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl space-y-6">
+               <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto shadow-inner border-4 border-red-50">
+                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-red-500"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+               </div>
+               <div className="text-center space-y-2">
+                 <h3 className="text-2xl font-black text-textMain">Yapay Zeka Uyarısı</h3>
+                 <p className="text-textMuted font-bold leading-relaxed text-sm">Gönderdiğiniz mesaj güvenlik duvarımız tarafından hassas/riskli algılandı. Destek ister misiniz?</p>
+               </div>
+               <div className="flex gap-4 pt-2">
+                 <button onClick={() => setRiskAlert(false)} className="flex-1 py-4 font-black rounded-2xl bg-gray-100 text-textMain active:scale-95 transition-all text-sm border-b-4 border-gray-300 active:border-b-0 active:translate-y-1">Geç</button>
+                 <button onClick={() => { setRiskAlert(false); alert("Uzman ekibimize bildirim gönderildi. En kısa sürede iletişime geçeceğiz."); }} className="flex-1 py-4 font-black rounded-2xl bg-red-500 text-white active:scale-95 transition-all text-sm shadow-[0_5px_15px_rgba(239,68,68,0.3)] border-b-4 border-red-700 active:border-b-0 active:translate-y-1">Uzmana Sor</button>
+               </div>
+            </div>
+          </div>
+      )}
+
       {/* Security Banner */}
       <div className="bg-mintLight py-2 px-4 border-b border-mintMid flex items-center justify-center gap-2 z-10">
         <div className="w-5 h-5 rounded-full bg-grass flex items-center justify-center">
@@ -186,12 +227,12 @@ export default function ChatScreen({ session, user, onBack }) {
       </div>
 
       {/* Input Area */}
-      <div className="fixed bottom-0 left-0 w-full p-6 bg-white border-t-2 border-borderSoft flex gap-4 z-50 items-center shadow-[0_-10px_30px_rgba(0,0,0,0.05)] pb-12">
+      <div className="fixed bottom-[80px] left-0 w-full p-4 bg-white border-t-2 border-borderSoft flex gap-3 z-40 items-center shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
         <button 
           onClick={toggleRecording} 
-          className={`w-16 h-16 flex items-center justify-center rounded-full border-4 transition-all shadow-xl ${isRecording ? 'bg-red-500 border-red-700 text-white animate-pulse' : 'bg-mintLight border-mintBorder text-grass hover:bg-mintMid'}`}
+          className={`shrink-0 w-[64px] h-[64px] flex items-center justify-center rounded-2xl border-4 transition-all shadow-md ${isRecording ? 'bg-red-500 border-red-700 text-white animate-pulse' : 'bg-mintLight border-mintBorder text-grass hover:bg-mintMid'}`}
         >
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
             <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
             <line x1="12" y1="19" x2="12" y2="23"></line>
@@ -202,11 +243,11 @@ export default function ChatScreen({ session, user, onBack }) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleSend(input)}
-          className="input-soft flex-1 py-5 px-6 text-xl"
+          className="input-soft flex-1 w-0 min-w-0 h-[64px] px-6 text-xl transition-all"
           placeholder="İletiniz..."
         />
-        <button onClick={() => handleSend(input)} className="w-16 h-16 bg-grass rounded-full flex items-center justify-center text-white shadow-xl active:scale-95 transition-transform border-b-4 border-forest">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        <button onClick={() => handleSend(input)} className="shrink-0 w-[64px] h-[64px] bg-grass rounded-2xl flex items-center justify-center text-white shadow-md active:scale-95 transition-transform border-b-[6px] border-forest active:border-b-0 active:translate-y-[6px]">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
         </button>
       </div>
     </div>

@@ -3,7 +3,7 @@ import SpeechCapture from "../components/SpeechCapture";
 
 export default function LoginScreen({ role, onSubmit, onBack }) {
   const [formData, setFormData] = useState({
-    name: "",
+    username: "",
     password: "",
     picture_password: []
   });
@@ -21,15 +21,15 @@ export default function LoginScreen({ role, onSubmit, onBack }) {
 
   const handleFocus = (field) => {
     const prompts = {
-      name: "Giriş yapmak için adınızı söyleyin veya kutuya dokunun.",
-      picture: "Lütfen kayıt olurken seçtiğiniz 3 resmi sırasıyla tıklayın. Unutmayın, resimlerin seçilme sırası çok önemlidir."
+      username: "Giriş yapmak için kullanıcı adınızı söyleyin veya kutuya dokunun.",
+      picture: "Lütfen kayıt olurken seçtiğiniz 3 resmi sırasıyla tıklayın. Unutmayın, resimlerin seçilme sırası çok önemli."
     };
     if (prompts[field]) speakText(prompts[field]);
   };
 
   useEffect(() => {
     if (!isGenc) {
-      speakText("Hoş geldiniz. Giriş yapmak için adınızı söyleyin veya kutuya dokunun.");
+      speakText("Hoş geldiniz. Giriş yapmak için kullanıcı adınızı söyleyin veya kutuya dokunun.");
     }
   }, [role]);
 
@@ -39,7 +39,7 @@ export default function LoginScreen({ role, onSubmit, onBack }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name) return alert("Lütfen isminizi girin.");
+    if (!formData.username) return alert("Lütfen kullanıcı adınızı girin.");
     if (isGenc && !formData.password) return alert("Lütfen şifrenizi girin.");
     if (!isGenc && formData.picture_password.length < 3) return alert("Lütfen 3 resim seçin.");
 
@@ -49,7 +49,7 @@ export default function LoginScreen({ role, onSubmit, onBack }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: formData.name,
+          username: formData.username,
           password: isGenc ? formData.password : null,
           picture_password: isGenc ? null : formData.picture_password.join(",")
         })
@@ -90,25 +90,59 @@ export default function LoginScreen({ role, onSubmit, onBack }) {
           {isGenc ? (
             <div className="space-y-6">
               <div>
-                <label className="block font-black text-textMain text-lg mb-2 px-2 uppercase tracking-wide opacity-80">İsminiz</label>
+                <label className="block font-black text-textMain text-lg mb-2 px-2 uppercase tracking-wide opacity-80">Kullanıcı Adınız</label>
                 <input 
-                  name="name"
-                  value={formData.name}
+                  name="username"
+                  value={formData.username}
                   onChange={handleChange}
                   className="input-soft w-full p-4 font-bold text-textMain placeholder-textFaint transition-all focus:shadow-md"
-                  placeholder="Adınız ve Soyadınız"
+                  placeholder="Kullanıcı Adınız"
                 />
               </div>
-              <div>
-                <label className="block font-black text-textMain text-lg mb-2 px-2 uppercase tracking-wide opacity-80">Şifreniz</label>
-                <input 
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="input-soft w-full p-4 font-bold text-textMain placeholder-textFaint transition-all focus:shadow-md"
-                  placeholder="Şifrenizi girin"
-                />
+              <div className="space-y-6 bg-white/50 p-6 rounded-[32px] border-4 border-mintLight/50">
+                <label className="block text-sm font-black text-textMain opacity-60 uppercase text-center">Giriş Şifreniz (6 Haneli PIN)</label>
+                
+                <div className="flex justify-center gap-3">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className={`w-12 h-14 rounded-2xl flex items-center justify-center text-4xl border-4 transition-all duration-300 ${formData.password.length > i ? 'border-primary bg-primary text-white shadow-[0_0_15px_rgba(46,125,50,0.4)] scale-110' : 'border-borderSoft bg-white/80'}`}>
+                      {formData.password.length > i ? '•' : ''}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 max-w-[280px] mx-auto mt-6">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                    <button 
+                      type="button" 
+                      key={num} 
+                      onClick={() => { if(formData.password.length < 6) handleChange({target: {name: 'password', value: formData.password + num}})}} 
+                      className="w-full h-16 text-3xl font-black rounded-3xl bg-white border-4 border-borderSoft border-b-[8px] active:border-b-4 active:translate-y-1 transition-all hover:bg-mintLight/20 text-textMain"
+                    >
+                      {num}
+                    </button>
+                  ))}
+                  <button 
+                    type="button" 
+                    onClick={() => handleChange({target: {name: 'password', value: formData.password.slice(0, -1)}})} 
+                    className="w-full h-16 text-3xl font-black rounded-3xl bg-red-100/80 text-red-600 border-4 border-red-200 border-b-[8px] border-b-red-300 active:border-b-4 active:translate-y-1 transition-all flex items-center justify-center"
+                  >
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path><line x1="18" y1="9" x2="12" y2="15"></line><line x1="12" y1="9" x2="18" y2="15"></line></svg>
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { if(formData.password.length < 6) handleChange({target: {name: 'password', value: formData.password + '0'}})}} 
+                    className="w-full h-16 text-3xl font-black rounded-3xl bg-white border-4 border-borderSoft border-b-[8px] active:border-b-4 active:translate-y-1 transition-all hover:bg-mintLight/20 text-textMain"
+                  >
+                    0
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleChange({target: {name: 'password', value: ''}})} 
+                    className="w-full h-16 text-xl font-black rounded-3xl bg-gray-200/80 text-gray-700 border-4 border-gray-300 border-b-[8px] border-b-gray-400 active:border-b-4 active:translate-y-1 transition-all"
+                  >
+                    SİL
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -116,18 +150,18 @@ export default function LoginScreen({ role, onSubmit, onBack }) {
               {/* Name Field with Voice for Elders */}
               <div className="space-y-4">
                 <label className="block font-black text-forest text-2xl mb-2 px-4 uppercase tracking-widest text-center opacity-70">
-                  Adınız ve Soyadınız
+                  Kullanıcı Adınız
                 </label>
                 <div className="flex items-center gap-4">
                   <input 
-                    name="name"
-                    value={formData.name}
+                    name="username"
+                    value={formData.username}
                     onChange={handleChange}
-                    onFocus={() => handleFocus("name")}
+                    onFocus={() => handleFocus("username")}
                     className="input-soft flex-1 !py-8 !text-3xl font-black placeholder:opacity-30"
-                    placeholder="Buraya Yazın veya Söyleyin"
+                    placeholder="Bırakılan Kullanıcı Adını Yazın"
                   />
-                  <SpeechCapture onResult={(val) => setFormData(p => ({...p, name: val}))} isLarge={true} />
+                  <SpeechCapture onResult={(val) => setFormData(p => ({...p, username: val}))} isLarge={true} />
                 </div>
               </div>
 

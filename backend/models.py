@@ -12,6 +12,7 @@ def get_utc_now():
 class User(Base):
     __tablename__ = "users"
     id = Column(String, primary_key=True, default=generate_uuid)
+    username = Column(String, unique=True, index=True, nullable=True) # New unique username field
     name = Column(String, nullable=False)
     surname = Column(String, nullable=True) # New field
     age = Column(Integer, nullable=False)
@@ -56,4 +57,21 @@ class Alert(Base):
     crisis_level = Column(String, nullable=False)
     trigger_text = Column(Text, nullable=True)
     resolved = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=get_utc_now)
+
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    match_id = Column(String, ForeignKey("match_requests.id"))
+    young_id = Column(String, ForeignKey("users.id"))
+    elder_id = Column(String, ForeignKey("users.id"))
+    created_at = Column(DateTime, default=get_utc_now)
+
+class Message(Base):
+    __tablename__ = "messages"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    session_id = Column(String, ForeignKey("chat_sessions.id"))
+    sender_id = Column(String, ForeignKey("users.id"))
+    sender_role = Column(String, nullable=False)
+    text = Column(Text, nullable=False)
     created_at = Column(DateTime, default=get_utc_now)

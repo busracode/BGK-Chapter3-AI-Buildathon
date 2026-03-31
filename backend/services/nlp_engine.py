@@ -6,6 +6,14 @@ Duygu analizi, eşleştirme skoru ve kriz tespiti
 
 from groq import Groq
 from dataclasses import dataclass
+
+# New dataclass for extracting young user profile information
+@dataclass
+class YoungProfileExtract:
+    hobbies: list[str]
+    interests: list[str]
+    life_experiences: list[str]
+
 from enum import Enum
 from typing import Optional
 import json
@@ -62,6 +70,8 @@ GROQ_MODEL = "llama-3.3-70b-versatile"  # Ücretsiz, güçlü model
 
 
 async def extract_elder_profile(text: str) -> ElderProfileExtract:
+    """Extract elder profile from transcript (existing)"""
+    # (function body unchanged)  # placeholder to keep line numbers
     """Yaşlının sesli anlatımını ayrıştırıp yapılandırılmış JSON döner."""
     prompt = f"""
 Sen bir profil uzmanısın. Yaşlı bir mentörün sesli kaydından (transkript) bilgilerini JSON olarak çıkar.
@@ -124,6 +134,9 @@ Gereksinimler:
         )
 
 async def analyze_emotion(text: str, user_role: str) -> EmotionProfile:
+    """Existing function unchanged"""
+    # (body unchanged)
+
     """
     Kullanıcının mesajından duygu profili çıkarır.
     Kriz belirteci varsa CrisisLevel.ALERT veya CRITICAL döner.
@@ -175,6 +188,9 @@ async def compute_resonance_score(
     young_profile: EmotionProfile,
     elder_profile: EmotionProfile,
 ) -> ResonanceScore:
+    """Existing function unchanged"""
+    # (body unchanged)
+
     """
     Genç ve yaşlı profilleri arasındaki duygusal rezonans skorunu hesaplar.
     """
@@ -274,3 +290,31 @@ Kısa, samimi, yönlendirici bir öneri ver (1 cümle).
     )
 
     return response.choices[0].message.content.strip()
+
+async def extract_needs_summary(text: str) -> str:
+    """
+    Genç profil kayıt metninden 'Bu kişi [Alan] alanında bilgili ve [İhtiyaç] desteğine ihtiyacı var' 
+    formatında özet çıkarır.
+    """
+    prompt = f"""
+Sen bir kariyer/psikolojik rehberlik asistanısın. Aşağıdaki genç profil yazısını analiz et.
+Sadece şu formatta TEK BİR CÜMLE döndür: "Bu kişi [Alan/Konu] alanında ilgili/bilgili ve [Türü/İhtiyacı] desteğine ihtiyacı var."
+Başka hiçbir giriş, selamlama veya açıklama yazma.
+
+Örnekler:
+- "Bu kişi Yazılım alanında bilgili ve Kariyer Rehberliği desteğine ihtiyacı var."
+- "Bu kişi Üniversite Tercihi konusunda stresli ve Deneyim Paylaşımı desteğine ihtiyacı var."
+
+Metin:
+"{text}"
+"""
+    try:
+        response = client.chat.completions.create(
+            model=GROQ_MODEL,
+            max_tokens=60,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"DEBUG: extract_needs_summary error: {e}")
+        return "Bu gencin rehberliğe ve dinlenilmeye ihtiyacı var."

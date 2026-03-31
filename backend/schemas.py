@@ -4,6 +4,7 @@ from datetime import datetime
 from dataclasses import dataclass
 
 class UserCreate(BaseModel):
+    username: Optional[str] = None
     name: str
     surname: Optional[str] = None
     age: int
@@ -35,12 +36,13 @@ class UserUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class UserLogin(BaseModel):
-    name: str # Using name to login
+    username: str # Changed from name
     password: Optional[str] = None
     picture_password: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: str
+    username: str
     name: str
     surname: Optional[str] = None
     age: int

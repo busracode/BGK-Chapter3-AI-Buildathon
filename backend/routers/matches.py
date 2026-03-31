@@ -2,14 +2,58 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
-from models import User, MatchRequest
+from models import User, MatchRequest, ChatSession
 from schemas import MatchRequestSchema
 from database import get_db
 from services.nlp_engine import analyze_emotion, compute_resonance_score, EmotionProfile, EmotionType, CrisisLevel
 import time
 import json
 
+from sqlalchemy import desc
+
 router = APIRouter()
+
+@router.get("/active/{user_id}")
+async def get_active_match(user_id: str, db: AsyncSession = Depends(get_db)):
+    # Find the user's role
+    user_res = await db.execute(select(User).where(User.id == user_id))
+    user = user_res.scalars().first()
+    if not user:
+        return None
+        
+    if user.role == "genç":
+        where_clause = (MatchRequest.young_id == user_id) & MatchRequest.status.in_(["pending", "accepted", "chat_started"])
+    else:
+        where_clause = (MatchRequest.elder_id == user_id) & MatchRequest.status.in_(["accepted", "chat_started"])
+        
+    # Find the latest active match for this user
+    result = await db.execute(
+        select(MatchRequest)
+        .where(where_clause)
+        .order_by(desc(MatchRequest.created_at))
+    )
+    req = result.scalars().first()
+    if not req:
+        return None
+        
+    other_id = req.elder_id if user.role == "genç" else req.young_id
+    res = await db.execute(select(User).where(User.id == other_id))
+    other_user = res.scalars().first()
+    
+    session_id = None
+    if req.status == "chat_started":
+        sess_res = await db.execute(select(ChatSession).where(ChatSession.match_id == req.id))
+        session = sess_res.scalars().first()
+        if session:
+            session_id = session.id
+            
+    return {
+        "id": req.id,
+        "status": req.status,
+        "other_name": other_user.name if other_user else "Kullanıcı",
+        "other_summary": other_user.personality_summary if other_user else "",
+        "session_id": session_id
+    }
 
 @router.post("/find", response_model=MatchRequestSchema)
 async def find_best_match(user_id: str, db: AsyncSession = Depends(get_db)):
@@ -111,8 +155,33 @@ async def accept_match(match_id: str, db: AsyncSession = Depends(get_db)):
     req.status = "accepted"
     await db.commit()
     
-    session_id = f"session_{req.young_id}_{req.elder_id}_{int(time.time())}"
-    return {"session_id": session_id, "status": "accepted"}
+    return {"status": "accepted", "message": "Eşleşme onaylandı. Her iki taraf da sohbete başlayabilir."}
+
+@router.post("/start-chat/{match_id}")
+async def start_chat(match_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(MatchRequest).where(MatchRequest.id == match_id))
+    req = result.scalars().first()
+    if not req:
+        raise HTTPException(status_code=404, detail="Match not found")
+        
+    if req.status == "chat_started":
+        sess_res = await db.execute(select(ChatSession).where(ChatSession.match_id == req.id))
+        session = sess_res.scalars().first()
+        if session:
+            return {"session_id": session.id, "status": "chat_started"}
+            
+    req.status = "chat_started"
+    
+    session = ChatSession(
+        match_id=req.id,
+        young_id=req.young_id,
+        elder_id=req.elder_id
+    )
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+    
+    return {"session_id": session.id, "status": "chat_started"}
 
 @router.post("/reject/{match_id}")
 async def reject_match(match_id: str, db: AsyncSession = Depends(get_db)):

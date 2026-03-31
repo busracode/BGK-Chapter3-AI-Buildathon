@@ -2,22 +2,42 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 from models import User
-from schemas import UserCreate, UserResponse, UserStats, UserUpdate
-from services.nlp_engine import analyze_emotion, extract_elder_profile
+from schemas import UserCreate, UserLogin, UserResponse, UserStats, UserUpdate
+from services.nlp_engine import analyze_emotion, extract_elder_profile, extract_needs_summary
 import json
-from passlib.hash import bcrypt
+from passlib.context import CryptContext
 
+pwd_context = CryptContext(schemes=["argon2", "bcrypt"], deprecated="auto")
 def hash_password(password: str) -> str:
-    return bcrypt.hash(password)
+    # Argon2 has no 72-byte limit, but we keep a reasonable max length
+    if len(password) > 256:
+        raise HTTPException(status_code=400, detail="Şifre çok uzun, 256 karakteri geçemez")
+    return pwd_context.hash(password)
 
+def validate_password(password: str):
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="Şifre en az 8 karakter olmalı")
+    if len(password.encode('utf-8')) > 72:
+        raise HTTPException(status_code=400, detail="Şifre 72 byte sınırını aşamaz")
+    # Optional: add more complexity checks here
+    return True
 router = APIRouter()
 
 @router.post("/profile", response_model=UserResponse)
 async def create_profile(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+    # Password is mandatory only for young users ("genç"). Elders use picture password.
+    if user_in.role == "genç":
+        if not user_in.password:
+            raise HTTPException(status_code=400, detail="Şifre zorunludur.")
+        validate_password(user_in.password)
+        hashed = hash_password(user_in.password)
+    else:
+        # Elder users: no textual password, only picture password
+        hashed = None
     new_user = User(
         role=user_in.role,
         city=user_in.city,
-        hashed_password=hash_password(user_in.password) if user_in.password else None,
+        hashed_password=hashed,
         picture_password=user_in.picture_password
     )
     
@@ -31,7 +51,7 @@ async def create_profile(user_in: UserCreate, db: AsyncSession = Depends(get_db)
             emotion_profile = await analyze_emotion(mood_text, user_in.role)
             new_user.primary_emotion = emotion_profile.primary_emotion.value
             new_user.experience_tags = ",".join(emotion_profile.experience_tags)
-            new_user.personality_summary = emotion_profile.summary
+            new_user.personality_summary = await extract_needs_summary(mood_text)
         except Exception as e:
             print("Error analyzing genc emotion:", e)
             new_user.primary_emotion = "nötr"
@@ -71,7 +91,7 @@ async def create_profile(user_in: UserCreate, db: AsyncSession = Depends(get_db)
                 new_user.city = elder_data.city
                 new_user.hobbies = json.dumps(elder_data.hobbies, ensure_ascii=False)
                 new_user.interests = json.dumps(elder_data.interests, ensure_ascii=False)
-                new_user.speaking_style = elder_data.speaking_style
+                # new_user.speaking_style = elder_data.speaking_style  # Voice data not needed
                 new_user.expertise_level = elder_data.expertise_level
                 new_user.life_experiences = json.dumps(elder_data.life_experiences, ensure_ascii=False)
                 new_user.personality_summary = elder_data.personality_summary
@@ -162,3 +182,32 @@ async def delete_user(user_id: str, db: AsyncSession = Depends(get_db)):
     await db.delete(user)
     await db.commit()
     return {"message": "Hesabınız başarıyla silindi."}
+
+@router.post("/login")
+async def login(login_in: UserLogin, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy.future import select
+    result = await db.execute(select(User).where(User.name == login_in.name))
+    user = result.scalars().first()
+    
+    if not user:
+        # dummy verify to mitigate timing attacks
+        pwd_context.verify("dummy", pwd_context.hash("dummy"))
+        raise HTTPException(status_code=444, detail="Geçersiz kimlik bilgileri") # Generic for security
+
+    if user.role == "genç":
+        if not login_in.password:
+             raise HTTPException(status_code=400, detail="Şifre gerekli")
+        if not user.hashed_password or not pwd_context.verify(login_in.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Şifre hatalı")
+    
+    elif user.role == "büyük":
+        # Elder users use picture password
+        if not login_in.picture_password:
+             raise HTTPException(status_code=400, detail="Resim şifresi (ikonlar) gerekli")
+        if user.picture_password != login_in.picture_password:
+            raise HTTPException(status_code=401, detail="Resim şifresi hatalı")
+    
+    else:
+        raise HTTPException(status_code=400, detail="Geçersiz kullanıcı rolü")
+
+    return {"message": "Giriş başarılı", "user_id": user.id, "role": user.role}

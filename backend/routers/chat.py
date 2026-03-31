@@ -8,6 +8,10 @@ from pydantic import BaseModel
 from typing import Optional
 import asyncio
 import json
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import asc
+from models import ChatSession, User, Message
 
 from services.nlp_engine import (
     analyze_emotion,
@@ -128,43 +132,71 @@ async def process_message_async(session_id: str, text: str, role: str):
 
 
 @router.post("/send")
-async def send_message(req: SendMessageRequest):
-    """REST API üzerinden mesaj gönderimi (WebSocket yoksa fallback)."""
-    profile = await analyze_emotion(req.text, req.sender_role)
-
-    if profile.crisis_level == CrisisLevel.CRITICAL:
-        await notify_expert_team(
-            session_id=req.session_id,
-            crisis_level=profile.crisis_level,
-            user_role=req.sender_role,
-            trigger_text=req.text,
-        )
-
-    # Dinamik cevap üretimi
+async def send_message(req: SendMessageRequest, db: AsyncSession = Depends(get_db)):
+    """REST API üzerinden mesaj gönderimi. Mesajı veritabanına kaydeder."""
+    is_risky = False
+    crisis_level = "yok"
+    primary_emotion = "nötr"
+    
+    # 1. Moderasyon & Kriz Analizi (Eğer Groq çökerse mesaj gitmeye devam etmeli)
     try:
-        if req.sender_role == "genç":
-            system_prompt = "Sen 65+ yaşında, bilge ve tecrübeli birisin. Karşındaki genç sana dertlerini anlatıyor. Kısa (1-2 cümle), empatik, babacan/öğretici bir cevap ver."
-        else:
-            system_prompt = "Sen hayatın başındaki genç birisin. Karşındaki büyük kişi sana tecrübelerini aktarıyor. Kısa (1-2 cümle), saygılı, meraklı ve ilgili bir cevap ver."
+        profile = await analyze_emotion(req.text, req.sender_role)
+        is_risky = profile.crisis_level in [CrisisLevel.ALERT, CrisisLevel.CRITICAL]
+        crisis_level = profile.crisis_level.value if hasattr(profile.crisis_level, "value") else str(profile.crisis_level)
+        primary_emotion = profile.primary_emotion.value if hasattr(profile.primary_emotion, "value") else str(profile.primary_emotion)
 
-        response = client.chat.completions.create(
-            model=GROQ_MODEL,
-            max_tokens=150,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": req.text}
-            ],
-        )
-        reply_text = response.choices[0].message.content.strip()
+        if profile.crisis_level == CrisisLevel.CRITICAL:
+            await notify_expert_team(
+                session_id=req.session_id,
+                crisis_level=profile.crisis_level,
+                user_role=req.sender_role,
+                trigger_text=req.text,
+            )
     except Exception as e:
-        reply_text = "Çok haklısın, anlıyorum. Bu konuda biraz daha konuşmak ister misin?"
+        print("Emotion analysis failed, but passing through message:", e)
+
+    # 2. Veritabanına Mesajı Kaydet
+    try:
+        new_msg = Message(
+            session_id=req.session_id,
+            sender_id=req.sender_id,
+            sender_role=req.sender_role,
+            text=req.text
+        )
+        db.add(new_msg)
+        await db.commit()
+    except Exception as e:
+        print("Database save failed:", e)
+        raise HTTPException(status_code=500, detail="Mesaj kaydedilemedi.")
 
     return {
         "status": "sent",
-        "emotion": profile.primary_emotion,
-        "crisis_level": profile.crisis_level,
-        "reply": reply_text
+        "emotion": primary_emotion,
+        "crisis_level": crisis_level,
+        "is_risky": is_risky
     }
+
+@router.get("/messages/{session_id}")
+async def get_messages(session_id: str, db: AsyncSession = Depends(get_db)):
+    """Gerçek zamanlı polling için belirli bir oturumun geçmiş mesajlarını çeker."""
+    result = await db.execute(
+        select(Message)
+        .where(Message.session_id == session_id)
+        .order_by(asc(Message.created_at))
+    )
+    messages = result.scalars().all()
+    
+    return [
+        {
+            "id": m.id,
+            "sender_id": m.sender_id,
+            "sender_role": m.sender_role,
+            "text": m.text,
+            "created_at": m.created_at.isoformat() if m.created_at else None
+        }
+        for m in messages
+    ]
+
 
 
 @router.post("/crystallize/{session_id}")
