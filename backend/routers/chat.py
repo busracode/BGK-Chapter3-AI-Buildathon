@@ -10,7 +10,7 @@ import asyncio
 import json
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import asc
+from sqlalchemy import asc, desc
 from models import ChatSession, User, Message
 
 from services.nlp_engine import (
@@ -211,3 +211,42 @@ async def crystallize_session(session_id: str):
 
     lesson = await crystallize_lesson(demo_conversation)
     return {"lesson": lesson, "session_id": session_id}
+
+@router.get("/sessions/{user_id}")
+async def get_chat_sessions(user_id: str, db: AsyncSession = Depends(get_db)):
+    """Kullanıcının tüm aktif sohbet oturumlarını, en son mesaj tarihine göre getirir."""
+    # 1. Kullanıcının dahil olduğu oturumları bul
+    result = await db.execute(
+        select(ChatSession).where(
+            (ChatSession.young_id == user_id) | (ChatSession.elder_id == user_id)
+        )
+    )
+    sessions = result.scalars().all()
+    
+    output = []
+    for sess in sessions:
+        # a. Diğer kullanıcının ismini al
+        other_id = sess.elder_id if sess.young_id == user_id else sess.young_id
+        user_res = await db.execute(select(User).where(User.id == other_id))
+        other_user = user_res.scalars().first()
+        
+        # b. En son mesajı al
+        msg_res = await db.execute(
+            select(Message)
+            .where(Message.session_id == sess.id)
+            .order_by(desc(Message.created_at))
+            .limit(1)
+        )
+        last_msg = msg_res.scalars().first()
+        
+        output.append({
+            "session_id": sess.id,
+            "other_name": other_user.name if other_user else "Bilinmeyen Kullanıcı",
+            "last_message": last_msg.text if last_msg else "Henüz mesaj yok",
+            "last_message_date": last_msg.created_at.isoformat() if last_msg else sess.created_at.isoformat(),
+            "is_ai": False # Şimdilik sadece insan-insan sohbetleri var
+        })
+
+    # c. Tarihe göre azalan sıralama (En yeni mesaj en üstte)
+    output.sort(key=lambda x: x["last_message_date"], reverse=True)
+    return output

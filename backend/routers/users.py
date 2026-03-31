@@ -1,9 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from database import get_db
 from models import User
-from schemas import UserCreate, UserLogin, UserResponse, UserStats, UserUpdate
-from services.nlp_engine import analyze_emotion, extract_elder_profile, extract_needs_summary
+from schemas import UserCreate, UserLogin, UserResponse, UserStats, UserUpdate, MoodUpdate, DailyScoreRequest
+from services.nlp_engine import (
+    analyze_emotion, 
+    extract_elder_profile, 
+    extract_needs_summary, 
+    generate_personality_bio,
+    analyze_detailed_profile
+)
 import json
 from passlib.context import CryptContext
 
@@ -35,6 +42,7 @@ async def create_profile(user_in: UserCreate, db: AsyncSession = Depends(get_db)
         # Elder users: no textual password, only picture password
         hashed = None
     new_user = User(
+        username=user_in.username,
         role=user_in.role,
         city=user_in.city,
         hashed_password=hashed,
@@ -51,7 +59,11 @@ async def create_profile(user_in: UserCreate, db: AsyncSession = Depends(get_db)
             emotion_profile = await analyze_emotion(mood_text, user_in.role)
             new_user.primary_emotion = emotion_profile.primary_emotion.value
             new_user.experience_tags = ",".join(emotion_profile.experience_tags)
-            new_user.personality_summary = await extract_needs_summary(mood_text)
+            
+            # Detaylı analiz (Summary + Expertise)
+            result = await analyze_detailed_profile(mood_text, user_in.role)
+            new_user.personality_summary = result["summary"]
+            new_user.expertise_level = result["expertise"]
         except Exception as e:
             print("Error analyzing genc emotion:", e)
             new_user.primary_emotion = "nötr"
@@ -74,7 +86,12 @@ async def create_profile(user_in: UserCreate, db: AsyncSession = Depends(get_db)
                     new_user.hobbies = json.dumps(elder_data.hobbies, ensure_ascii=False)
                     new_user.interests = json.dumps(elder_data.interests, ensure_ascii=False)
                     new_user.expertise_level = elder_data.expertise_level
-                    new_user.personality_summary = elder_data.personality_summary
+                    
+                    # More robust summary & expertise:
+                    ctx = f"İsim: {new_user.name}, Yaş: {new_user.age}, Şehir: {new_user.city}. Uzmanlık: {elder_data.expertise_level}. Anlattıkları: {user_in.current_mood_text}"
+                    result = await analyze_detailed_profile(ctx, "büyük")
+                    new_user.personality_summary = result["summary"]
+                    new_user.expertise_level = result["expertise"]
                 except:
                     print("DEBUG: NLP skip/fail, using raw transcript for interests")
                     new_user.interests = user_in.current_mood_text
@@ -116,7 +133,6 @@ async def create_profile(user_in: UserCreate, db: AsyncSession = Depends(get_db)
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user_profile(user_id: str, db: AsyncSession = Depends(get_db)):
-    from sqlalchemy.future import select
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
@@ -125,9 +141,8 @@ async def get_user_profile(user_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.get("/{user_id}/stats", response_model=UserStats)
 async def get_user_stats(user_id: str, db: AsyncSession = Depends(get_db)):
-    from sqlalchemy.future import select
     from sqlalchemy import func
-    from models import MatchRequest, JournalEntry
+    from models import MatchRequest, JournalEntry, DailyScore
     
     # Session count (accepted match requests)
     session_result = await db.execute(
@@ -148,7 +163,6 @@ async def get_user_stats(user_id: str, db: AsyncSession = Depends(get_db)):
 
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(user_id: str, user_update: UserUpdate, db: AsyncSession = Depends(get_db)):
-    from sqlalchemy.future import select
     try:
         result = await db.execute(select(User).where(User.id == user_id))
         user = result.scalars().first()
@@ -171,22 +185,70 @@ async def update_user(user_id: str, user_update: UserUpdate, db: AsyncSession = 
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Sunucu hatası: {str(e)}")
 
-@router.delete("/{user_id}")
-async def delete_user(user_id: str, db: AsyncSession = Depends(get_db)):
-    from sqlalchemy.future import select
+    await db.delete(user)
+    await db.commit()
+    return {"message": "Hesabınız başarıyla silindi."}
+
+@router.post("/reanalyze/{user_id}", response_model=UserResponse)
+async def reanalyze_user_profile(user_id: str, db: AsyncSession = Depends(get_db)):
+    """Kullanıcının profilini mevcut bilgilerine göre tekrar AI ile analiz eder."""
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalars().first()
     if not user:
         raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
     
-    await db.delete(user)
-    await db.commit()
-    return {"message": "Hesabınız başarıyla silindi."}
+    try:
+        if user.role == "genç":
+            # Genç için ilgi alanları üzerinden detaylı analiz
+            analysis_text = user.interests or "Bilgi yok"
+            result = await analyze_detailed_profile(analysis_text, user.role)
+            user.personality_summary = result["summary"]
+            user.expertise_level = result["expertise"]
+        else:
+            # Büyük için zengin context oluştur
+            parts = []
+            if user.name: parts.append(f"İsim: {user.name}")
+            if user.age: parts.append(f"Yaş: {user.age}")
+            if user.city: parts.append(f"Şehir: {user.city}")
+            
+            def parse_info(val):
+                if not val: return ""
+                try:
+                    data = json.loads(val)
+                    if isinstance(data, list): return ", ".join(data)
+                    return str(data)
+                except:
+                    return str(val)
+
+            interests_text = parse_info(user.interests)
+            if interests_text: parts.append(f"İlgi Alanları: {interests_text}")
+            
+            experiences_text = parse_info(user.life_experiences)
+            if experiences_text: parts.append(f"Hayat Tecrübeleri: {experiences_text}")
+            
+            combined_text = ". ".join(parts)
+            if not combined_text.strip():
+                combined_text = "Bu kullanıcı yeni kayıt oldu ve henüz detaylı bilgi paylaşmadı."
+            
+            # Detaylı analiz (Summary + Expertise)
+            result = await analyze_detailed_profile(combined_text, user.role)
+            user.personality_summary = result["summary"]
+            user.expertise_level = result["expertise"]
+            
+            # Duygu analizi
+            profile = await analyze_emotion(combined_text, user.role)
+            user.primary_emotion = profile.primary_emotion.value
+
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except Exception as e:
+        print(f"Re-analysis failed: {e}")
+        raise HTTPException(status_code=500, detail="AI Analizi şu an gerçekleştirilemiyor.")
 
 @router.post("/login")
 async def login(login_in: UserLogin, db: AsyncSession = Depends(get_db)):
-    from sqlalchemy.future import select
-    result = await db.execute(select(User).where(User.name == login_in.name))
+    result = await db.execute(select(User).where(User.username == login_in.username))
     user = result.scalars().first()
     
     if not user:
@@ -211,3 +273,79 @@ async def login(login_in: UserLogin, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Geçersiz kullanıcı rolü")
 
     return {"message": "Giriş başarılı", "user_id": user.id, "role": user.role}
+
+@router.post("/{user_id}/mood", response_model=UserResponse)
+async def update_user_mood(user_id: str, mood_in: MoodUpdate, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    try:
+        # If a direct label is selected (emoji support), use it
+        if mood_in.mood_label:
+            user.primary_emotion = mood_in.mood_label
+            
+        # If text/voice is provided, analyze it for context and tags
+        mood_text = mood_in.mood_text
+        if mood_text and mood_text.strip():
+            profile = await analyze_emotion(mood_text, user.role)
+            # If no manual emoji was picked, let AI decide the primary emotion
+            if not mood_in.mood_label:
+                user.primary_emotion = profile.primary_emotion.value
+            
+            # Update tags from AI analysis
+            user.experience_tags = ",".join(profile.experience_tags)
+        elif not mood_in.mood_label:
+            # Default to neutral if nothing provided
+            user.primary_emotion = "nötr"
+            
+        await db.commit()
+        await db.refresh(user)
+        return user
+    except Exception as e:
+        print(f"Error updating mood: {e}")
+        raise HTTPException(status_code=500, detail="Mood analizi sırasında bir hata oluştu.")
+
+@router.post("/{user_id}/daily-score")
+async def save_daily_score(user_id: str, score_in: DailyScoreRequest, db: AsyncSession = Depends(get_db)):
+    from models import DailyScore
+    from datetime import date as dt_date
+    
+    today = dt_date.today()
+    
+    # Check if entry for today exists
+    result = await db.execute(
+        select(DailyScore).where(
+            (DailyScore.user_id == user_id) & 
+            (func.date(DailyScore.date) == today)
+        )
+    )
+    existing = result.scalars().first()
+    
+    if existing:
+        existing.score = score_in.score
+    else:
+        new_score = DailyScore(user_id=user_id, score=score_in.score)
+        db.add(new_score)
+    
+    await db.commit()
+    return {"status": "success", "score": score_in.score}
+
+@router.get("/{user_id}/weekly-scores")
+async def get_weekly_scores(user_id: str, db: AsyncSession = Depends(get_db)):
+    from models import DailyScore
+    from datetime import timedelta, datetime
+    
+    # Get last 7 days
+    seven_days_ago = datetime.now() - timedelta(days=7)
+    
+    result = await db.execute(
+        select(DailyScore)
+        .where((DailyScore.user_id == user_id) & (DailyScore.date >= seven_days_ago))
+        .order_by(asc(DailyScore.date))
+    )
+    scores = result.scalars().all()
+    
+    # Map to simple list
+    return [{ "date": s.date.isoformat(), "score": s.score } for s in scores]

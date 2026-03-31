@@ -1,68 +1,70 @@
 # 🌉 Hayat Köprüsü — Life Bridge
 
-> AI destekli kuşaklararası mentörlük platformu
+> Nesilleri birbirine bağlayan, yapay zeka destekli akıllı mentörlük ve refakat platformu.
 
-## Problem
+## 🌟 Proje Vizyonu
 
-Günümüzde iki kritik grup birbirinden kopuk yaşıyor:
+**Hayat Köprüsü**, teknolojiyi dışlayıcı değil, kapsayıcı bir araç olarak kullanarak gençlerin dinamizmi ile yaşlıların hayat tecrübesini buluşturur. Yapay zeka, bu köprüde hem bir **akıllı rehber** hem de bir **güvenlik nöbetçisi** görevini üstlenir.
 
-- **Gençler (18–35):** Kaygı, kafa karışıklığı, yön kaybı yaşıyor; yüzeysel sosyal medya ilişkileri gerçek rehberliğin yerini tutmuyor.
-- **Yaşlılar (60+):** Yalnızlık, anlamsızlık ve miras bırakamama hissiyle boğuşuyor; onlarca yıllık birikim aktarılamıyor.
+## 🛠️ Uygulama Özellikleri
 
-## Çözüm
+### 1. Akıllı Kayıt ve Tanıma (AI Onboarding)
+- **Kuşaklararası Ayrım**: Gençler için standart, yaşlılar için ses odaklı kayıt akışları.
+- **Sesli Profil Oluşturma**: Yaşlı kullanıcılar yazmak yerine konuşarak kendilerini tanıtır; AI bu konuşmadan hobileri, şehirleri ve uzmanlık alanlarını otomatik ayıklar.
+- **Resimli Şifre (Picture Password)**: Hatırlaması zor metin şifreler yerine, yaşlı dostu ikon dizileriyle güvenli giriş.
 
-**Hayat Köprüsü**, yapay zekanın **Akıllı Eşleştirici** ve **Güvenlik Moderatörü** rolünü üstlendiği, bu iki nesli güvenli ve anlamlı bir dijital ortamda buluşturan bir mentörlük platformudur.
+### 2. Mentör Keşfi ve AI Uyumu (Discovery)
+- **Mentör Havuzu**: Gençler tüm mentörleri uzmanlık alanlarına göre filtreleyebilir ve listeleyebilir.
+- **Konu Bazlı İstek**: "Üniversite tercihi" veya "Yalnızlık hissi" gibi spesifik başlıklarla istek gönderme.
+- **Uzmanlık Analizi (Alignment Score)**: AI, öğrencinin ihtiyacı ile mentörün tecrübesini karşılaştırarak %0-100 arası bir uyum puanı üretir.
 
-## Temel Özellikler
+### 3. Sohbet ve Güvenlik (Chat & Moderation)
+- **Gerçek Zamanlı İletişim**: Kesintisiz mesajlaşma ve mesaj geçmişi kaydı.
+- **AI Moderasyon**: Sohbetler uçtan uca taranarak intihar, kendine zarar verme veya saldırganlık gibi riskli durumlar tespit edilir.
+- **Kriz Bildirim Servisi**: Riskli konuşmalarda sistem otomatik olarak uzman ekiplere ve acil durum rehberine bildirim gönderir.
 
-- **AI Derin Eşleştirme** — Duygusal rezonansa göre birebir eşleştirme
-- **Gerçek Zamanlı Moderasyon** — Kriz anı tespiti ve uzman bildirimi
-- **Dijital Günlük** — Sohbetlerden kristalize edilen hayat dersleri
-- **Çift Arayüz** — Yaşlılar için ses+dokunmatik, gençler için mobil uygulama
-- **Uçtan Uca Güvenlik** — Anonimleştirilmiş ve şifreli kullanıcı verileri
+### 4. Günlük Yaşam ve Takip (Tracking)
+- **Duygu Durum (Mood) Analizi**: Kullanıcılar günlük modlarını emoji veya sesle günceller. AI, bu girdileri analiz ederek öneriler sunar.
+- **Haftalık İlerleme (Weekly Progress)**: 1-10 arası günlük puanlama ve ilerlemeyi gösteren interaktif SVG grafiği.
+- **Dijital Günlük**: Kullanıcıların anılarını veya o günkü derslerini kaydedebileceği alan.
 
-## Nasıl Çalıştırılır?
+### 5. Maksimum Erişilebilirlik (Elder-Friendly)
+- **Global Ölçeklendirme**: Tek tuşla tüm fontların, ikonların ve butonların dev boyutlara (min 22px) çekilmesi.
+- **Sesli Asistan (TTS)**: Tüm mesajların ve bildirimlerin sesli olarak okunabilmesi.
+- **Ses Tanıma (STT)**: Yazı yazmakta zorlanan kullanıcılar için tüm girdi alanlarında mikrofon desteği.
 
-### Gereksinimler
+### 6. Dinamik Profil Yönetimi
+- **AI Biyografi**: Kullanıcının paylaştığı yeni bilgilerle otomatik güncellenen "Yapay Zeka Özeti".
+- **Acil Durum Kişisi**: Yaşlı kullanıcılar için hızlı erişilebilir acil durum iletişim bilgileri.
 
-- Node.js 18+
-- Python 3.10+
-- PostgreSQL 14+
+## 🔧 Teknik Mimari
 
-### Frontend (React)
+- **Frontend**: React (Vite) + Tailwind CSS + Framer Motion.
+- **Backend**: FastAPI (Python) + SQLAlchemy.
+- **Zeka Katmanı**: NLP ve Duygu Analizi modelleri.
+- **Veritabanı**: SQLite (Yerel) / PostgreSQL (Üretim).
 
+## 📦 Başlangıç
+
+### Gerekli Kurulumlar
+- Node.js (v18+)
+- Python (v3.10+)
+
+### Hızlı Başlat (Frontend)
 ```bash
 cd frontend
 npm install
-npm start
-# http://localhost:3000
+npm run dev
 ```
 
-### Backend (Python/FastAPI)
-
+### Hızlı Başlat (Backend)
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
 uvicorn main:app --reload
-# http://localhost:8000
 ```
 
-### Ortam Değişkenleri
+---
 
-```bash
-cp .env.example .env
-# .env dosyasını düzenle:
-# ANTHROPIC_API_KEY=your_key
-# DATABASE_URL=postgresql://...
-# SECRET_KEY=your_secret
-```
+🔗 **İletişim**: [hayatkoprusu.app](https://hayatkoprusu.app)
 
-## Yayın Linki
-
-🔗 [hayatkoprusu.app](https://hayatkoprusu.app) *(demo)*
-
-## Lisans
-
-MIT © 2026 Hayat Köprüsü Ekibi

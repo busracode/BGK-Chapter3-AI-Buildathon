@@ -4,8 +4,9 @@ NLP Motoru — Hayat Köprüsü
 Duygu analizi, eşleştirme skoru ve kriz tespiti
 """
 
-from groq import Groq
+from groq import AsyncGroq
 from dataclasses import dataclass
+from config import settings
 
 # New dataclass for extracting young user profile information
 @dataclass
@@ -65,7 +66,11 @@ class ElderProfileExtract:
     personality_summary: str
 
 
-client = Groq(api_key=os.environ.get("GROQ_API_KEY", "dummy_fallback_key"))
+# Initialize AsyncGroq client using settings from .env
+client = AsyncGroq(
+    api_key=settings.GROQ_API_KEY or "dummy_fallback_key",
+    timeout=10.0 # Prevent hanging
+)
 GROQ_MODEL = "llama-3.3-70b-versatile"  # Ücretsiz, güçlü model
 
 
@@ -94,10 +99,11 @@ Metin: "{text}"
 Gereksinimler:
 1. JSON formatı hatasız olmalı.
 2. Bilgi yoksa tahminde bulun, boş bırakma.
-3. Sadece JSON döndür.
+3. SADECE TÜRKÇE cevap ver ve sadece Türk alfabesini kullan. Başka alfabe veya dilde kelime kesinlikle kullanma.
+4. Sadece JSON döndür.
 """
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=GROQ_MODEL,
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}],
@@ -162,10 +168,11 @@ Kriz seviyesi için:
 - "uyarı": Belirgin stres veya demans belirtisi
 - "kritik": İntihar, kendine zarar verme, şiddetli kognitif bozulma
 
+SADECE TÜRKÇE CEVAP VER. Başka alfabe veya dil kullanma.
 Sadece JSON döndür, başka metin ekleme.
 """
 
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model=GROQ_MODEL,
         max_tokens=500,
         messages=[{"role": "user", "content": prompt}],
@@ -217,9 +224,58 @@ JSON formatında ver:
 Sadece JSON döndür.
 """
 
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model=GROQ_MODEL,
         max_tokens=300,
+        messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"},
+    )
+
+    raw = response.choices[0].message.content.strip()
+    data = json.loads(raw)
+
+    return ResonanceScore(
+        score=data["score"],
+        reason=data["reason"],
+        shared_themes=data["shared_themes"],
+    )
+
+async def compute_interest_resonance(
+    young_data: dict,
+    elder_data: dict,
+) -> ResonanceScore:
+    """
+    Genç ve yaşlı kullanıcılar arasındaki ilgi alanı, hobi ve tecrübe uyumunu hesaplar.
+    """
+    prompt = f"""
+İki kullanıcı arasındaki ilgi alanı, hobi ve hayat tecrübesi uyumunu hesapla.
+Duygusal durumlarını GÖRMEZDEN GEL, sadece ortak ilgi alanlarına ve mentörlük potansiyeline odaklan.
+
+Genç Kullanıcı Bilgileri:
+- İlgi Alanları: {young_data.get('interests', 'Belirtilmedi')}
+- Hobiler: {young_data.get('hobbies', 'Belirtilmedi')}
+- Hayat Hedefleri/İhtiyaçları: {young_data.get('needs', 'Belirtilmedi')}
+
+Yaşlı Kullanıcı Bilgileri:
+- İlgi Alanları/Uzmanlıklar: {elder_data.get('interests', 'Belirtilmedi')}
+- Hobiler: {elder_data.get('hobbies', 'Belirtilmedi')}
+- Hayat Tecrübeleri: {elder_data.get('experiences', 'Belirtilmedi')}
+- Karakter Özeti: {elder_data.get('summary', 'Belirtilmedi')}
+
+JSON formatında ver:
+{{
+  "score": 0-100 (Ne kadar çok ortak payda veya mentörlük potansiyeli varsa o kadar yüksek),
+  "reason": "Bu iki kişi neden eşleşti? (Örn: İkisi de ahşap oymacılığıyla ilgili)",
+  "shared_themes": ["ortak tema 1", "ortak tema 2"]
+}}
+
+SADECE TÜRKÇE CEVAP VER.
+Sadece JSON döndür, başka metin ekleme.
+"""
+
+    response = await client.chat.completions.create(
+        model=GROQ_MODEL,
+        max_tokens=400,
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"},
     )
@@ -258,7 +314,7 @@ Dersi şu formatta ver:
 Sadece ders cümlesini döndür.
 """
 
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model=GROQ_MODEL,
         max_tokens=100,
         messages=[{"role": "user", "content": prompt}],
@@ -283,7 +339,7 @@ Mentörün geçmişi: {', '.join(elder_profile.experience_tags)}
 Kısa, samimi, yönlendirici bir öneri ver (1 cümle).
 """
 
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model=GROQ_MODEL,
         max_tokens=150,
         messages=[{"role": "user", "content": prompt}],
@@ -299,7 +355,7 @@ async def extract_needs_summary(text: str) -> str:
     prompt = f"""
 Sen bir kariyer/psikolojik rehberlik asistanısın. Aşağıdaki genç profil yazısını analiz et.
 Sadece şu formatta TEK BİR CÜMLE döndür: "Bu kişi [Alan/Konu] alanında ilgili/bilgili ve [Türü/İhtiyacı] desteğine ihtiyacı var."
-Başka hiçbir giriş, selamlama veya açıklama yazma.
+Başka hiçbir giriş, selamlama veya açıklama yazma. SADECE TÜRKÇE ve TÜRK ALFABESİ kullan.
 
 Örnekler:
 - "Bu kişi Yazılım alanında bilgili ve Kariyer Rehberliği desteğine ihtiyacı var."
@@ -309,7 +365,7 @@ Metin:
 "{text}"
 """
     try:
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model=GROQ_MODEL,
             max_tokens=60,
             messages=[{"role": "user", "content": prompt}],
@@ -318,3 +374,134 @@ Metin:
     except Exception as e:
         print(f"DEBUG: extract_needs_summary error: {e}")
         return "Bu gencin rehberliğe ve dinlenilmeye ihtiyacı var."
+
+async def analyze_journal_entries(entries: list[str]) -> str:
+    """
+    Kullanıcının son günlük girişlerini analiz ederek bir 'gelişim odağı' özeti çıkarır.
+    """
+    if not entries:
+        return "Henüz bir odak belirlenmedi."
+        
+    combined_text = "\n---\n".join(entries)
+    prompt = f"""
+Sen bir kişisel gelişim analiz uzmanısın. Kullanıcının aşağıdaki son günlük girişlerini incele.
+Bu kişinin şu anki ruh halini ve üzerinde durduğu temel konuyu 3-5 kelimelik bir başlık/odak olarak belirle.
+Sadece tırnak içinde o odağı yaz. (Örn: "Sabır ve Yeniden Başlamak")
+
+Girişler:
+{combined_text}
+"""
+    try:
+        response = await client.chat.completions.create(
+            model=GROQ_MODEL,
+            max_tokens=50,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content.strip().replace('"', '')
+    except Exception as e:
+        print(f"DEBUG: analyze_journal_entries error: {e}")
+        return "Kişisel Gelişim ve Farkındalık"
+
+async def generate_personality_bio(context_text: str, role: str) -> str:
+    """
+    Kullanıcının biyografik bilgilerinden (isim, ilgi, tecrübe) 
+    karakterini ve mentörlük/öğrenci potansiyelini özetleyen bir biyografi oluşturur.
+    """
+    prompt = f"""
+Sen bir profil yazarı ve eşleştirme uzmanısın. Aşağıdaki bilgilere sahip bir "{role}" için 
+sıcak, bilgece (eğer büyükse) veya umut dolu (eğer gençse) bir kişilik özeti yaz.
+Maksimum 2 cümle olsun. Üçüncü şahıs ağzından yaz (Örn: "Ahmet bey, 40 yıllık mühendislik tecrübesiyle...").
+
+Kullanıcı Bilgileri:
+{context_text}
+
+Sadece özeti döndür.
+"""
+    try:
+        response = await client.chat.completions.create(
+            model=GROQ_MODEL,
+            max_tokens=150,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"DEBUG: generate_personality_bio error: {e}")
+        return "Paylaşmaya ve öğrenmeye açık, değerli bir topluluk üyesi."
+
+async def analyze_detailed_profile(context_text: str, role: str) -> dict:
+    """
+    Kullanıcının biyografik bilgilerinden (isim, ilgi, tecrübe) 
+    hem kişilik özetini hem de 'Uzmanlık Alanı' etiketini döner.
+    """
+    prompt = f"""
+Sen bir profil uzmanı ve eşleştirme asistanısın. Aşağıdaki kullanıcı bilgilerine göre
+sıcak bir kişilik özeti ve 1-2 kelimelik kısa bir uzmanlık alanı (veya odak alanı) belirle.
+
+Rol: {role}
+Bilgiler:
+{context_text}
+
+ÖNEMLİ: Cevapların tamamı TÜRKÇE olmalı ve sadece TÜRK ALFABESİ kullanılmalı. Başka dillerden (Arapça, Farsça vb.) kelime veya alfabe kesinlikle kullanma.
+
+Şu JSON formatında cevap ver:
+{{
+  "summary": "Maksimum 2 cümlelik, üçüncü şahıs ağzından sıcak bir özet.",
+  "expertise": "Kısa uzmanlık/odak alanı etiketi (Örn: Yazılım Geliştirme, Marangozluk, Kariyer Koçluğu)"
+}}
+Sadece JSON döndür.
+"""
+    try:
+        response = await client.chat.completions.create(
+            model=GROQ_MODEL,
+            max_tokens=250,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+        data = json.loads(response.choices[0].message.content.strip())
+        return {
+            "summary": data.get("summary", "Paylaşmaya hazır topluluk üyesi."),
+            "expertise": data.get("expertise", "Genel")
+        }
+    except Exception as e:
+        print(f"DEBUG: analyze_detailed_profile error: {e}")
+        return {
+            "summary": "Paylaşmaya ve öğrenmeye açık değerli bir üye.",
+            "expertise": "Genel"
+        }
+
+async def calculate_expertise_alignment(youth_topic: str, elder_profile: dict) -> int:
+    """
+    Genç kullanıcının yardım istediği konu ile büyüğün uzmanlık/eğitim durumu arasındaki uyumu hesaplar.
+    Duygusal durumdan bağımsız, sadece bilgi ve tecrübe odaklı bir yüzde (0-100) döner.
+    """
+    prompt = f"""
+Sence aşağıdaki genç kullanıcının yardım istediği KONU ile yaşlı mentörün UZMANLIK/TECRÜBE alanı ne kadar uyumlu?
+Sadece 0-100 arasında bir sayı (yüzde) döndür. Başka hiçbir metin ekleme.
+
+Genç Kullanıcının Yardım İstediği Konu: "{youth_topic}"
+
+Yaşlı Mentörün Profili:
+- Uzmanlık Seviyesi: {elder_profile.get('expertise_level', 'Belirtilmedi')}
+- İlgi Alanları: {elder_profile.get('interests', 'Belirtilmedi')}
+- Hayat Tecrübeleri: {elder_profile.get('life_experiences', 'Belirtilmedi')}
+- Kişilik Özeti: {elder_profile.get('personality_summary', 'Belirtilmedi')}
+
+Önemli: Eğer mentörün tecrübesi konuyla doğrudan ilgiliyse %90+, dolaylı ilgiliyse %60-80, ilgisizse %20-40 civarı puan ver.
+Sadece bir tam sayı döndür.
+"""
+    try:
+        response = await client.chat.completions.create(
+            model=GROQ_MODEL,
+            max_tokens=10,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        score_text = response.choices[0].message.content.strip()
+        # Extract only digits in case AI adds something
+        import re
+        match = re.search(r'\d+', score_text)
+        if match:
+            return min(100, max(0, int(match.group())))
+        return 50
+    except Exception as e:
+        print(f"DEBUG: calculate_expertise_alignment error: {e}")
+        return 50

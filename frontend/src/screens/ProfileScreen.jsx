@@ -15,6 +15,7 @@ export default function ProfileScreen({ user: initialUser, onLogout }) {
     emergency_contact_phone: user?.emergency_contact_phone || ""
   });
   const [showEmergencyForm, setShowEmergencyForm] = useState(false);
+  const [isReanalyzing, setIsReanalyzing] = useState(false);
 
   const parseList = (data) => {
     if (!data) return null;
@@ -97,6 +98,24 @@ export default function ProfileScreen({ user: initialUser, onLogout }) {
       } catch (err) {
         console.error(err);
       }
+    }
+  };
+
+  const handleReanalyze = async () => {
+    setIsReanalyzing(true);
+    try {
+      const resp = await fetch(`http://localhost:8000/api/users/reanalyze/${user.id}`, {
+        method: "POST"
+      });
+      if (resp.ok) {
+        const updated = await resp.json();
+        setUser(updated);
+        speakText("Profiliniz yapay zeka tarafından yeniden analiz edildi.");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsReanalyzing(false);
     }
   };
 
@@ -242,6 +261,16 @@ export default function ProfileScreen({ user: initialUser, onLogout }) {
             <p className="text-2xl font-serif font-black text-textMain leading-relaxed mb-6 italic">
               "{user.personality_summary || 'Profil henüz analiz edilmedi.'}"
             </p>
+
+            {(!user.personality_summary || user.personality_summary.includes("henüz")) && (
+              <button 
+                onClick={handleReanalyze} 
+                disabled={isReanalyzing}
+                className="btn-primary w-full py-3 mb-4 text-sm tracking-widest bg-forest"
+              >
+                {isReanalyzing ? "ANALİZ EDİLİYOR..." : "PROFİLİ AI İLE ANALİZ ET ✨"}
+              </button>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-6 border-t-2 border-borderSoft">
               <div className="bg-warmBg p-5 rounded-3xl border-2 border-borderSoft">
@@ -322,20 +351,28 @@ export default function ProfileScreen({ user: initialUser, onLogout }) {
 
            {showEmergencyForm ? (
              <div className="w-full space-y-3 bg-white p-6 rounded-3xl border-2 border-goldIcon shadow-inner animate-[slideDown_0.3s_ease-out]">
-                <input 
-                   className="input-soft w-full"
-                   placeholder="Yakınınızın Adı"
-                   value={editData.emergency_contact_name}
-                   onChange={e => setEditData({...editData, emergency_contact_name: e.target.value})}
-                   onFocus={() => handleFocus("emergencyName")}
-                />
-                <input 
-                   className="input-soft w-full"
-                   placeholder="Telefon Numarası"
-                   value={editData.emergency_contact_phone}
-                   onChange={e => setEditData({...editData, emergency_contact_phone: e.target.value})}
-                   onFocus={() => handleFocus("emergencyPhone")}
-                />
+                <div className="flex items-center gap-3">
+                  <input 
+                    className="input-soft flex-1 !py-5"
+                    placeholder="Yakınınızın Adı"
+                    value={editData.emergency_contact_name}
+                    onChange={e => setEditData({...editData, emergency_contact_name: e.target.value})}
+                    onFocus={() => handleFocus("emergencyName")}
+                  />
+                  <SpeechCapture onResult={(val) => setEditData(prev => ({ ...prev, emergency_contact_name: val }))} />
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <input 
+                    className="input-soft flex-1 !py-5"
+                    placeholder="Telefon Numarası"
+                    value={editData.emergency_contact_phone}
+                    onChange={e => setEditData({...editData, emergency_contact_phone: e.target.value})}
+                    onFocus={() => handleFocus("emergencyPhone")}
+                  />
+                  <SpeechCapture onResult={(val) => setEditData(prev => ({ ...prev, emergency_contact_phone: val }))} />
+                </div>
+
                 <div className="flex gap-2 pt-2">
                   <button onClick={handleUpdate} className="btn-primary flex-1 py-3 bg-goldText border-goldIcon">Kaydet</button>
                   <button onClick={() => setShowEmergencyForm(false)} className="btn-secondary flex-1">Vazgeç</button>

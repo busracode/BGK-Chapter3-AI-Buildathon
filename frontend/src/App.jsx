@@ -4,8 +4,10 @@ import RegisterScreen from "./screens/RegisterScreen";
 import LoginScreen from "./screens/LoginScreen";
 import HomeScreen from "./screens/HomeScreen";
 import ChatScreen from "./screens/ChatScreen";
+import ChatListScreen from "./screens/ChatListScreen";
 import JournalScreen from "./screens/JournalScreen";
 import ProfileScreen from "./screens/ProfileScreen";
+import DiscoveryScreen from "./screens/DiscoveryScreen";
 import BottomNav from "./components/BottomNav";
 
 export default function App() {
@@ -43,7 +45,7 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-warmBg relative overflow-hidden">
+    <div className={`min-h-screen bg-warmBg relative overflow-hidden ${user?.role === 'büyük' ? 'elder-friendly' : ''}`}>
       {screen === "splash" && (
         <SplashScreen 
           onRoleSelect={handleRoleSelect} 
@@ -67,30 +69,51 @@ export default function App() {
         />
       )}
 
-      {["home", "chat", "journal", "profile"].includes(screen) && (
+      {["home", "chat", "chat-detail", "journal", "profile", "discovery"].includes(screen) && (
         <>
           {screen === "home" && (
             <HomeScreen
               user={user}
+              setUser={setUser}
               onStartChat={(session) => {
                 setActiveSession(session);
-                setScreen("chat");
+                setScreen("chat-detail");
+              }}
+              onOpenDiscovery={() => setScreen("discovery")}
+            />
+          )}
+
+          {screen === "discovery" && (
+            <DiscoveryScreen 
+              user={user} 
+              onBack={() => setScreen("home")} 
+            />
+          )}
+
+          {screen === "chat" && (
+            <ChatListScreen
+              user={user}
+              onSelectChat={(session) => {
+                setActiveSession(session);
+                setScreen("chat-detail");
               }}
             />
           )}
-          {screen === "chat" && (
+
+          {screen === "chat-detail" && (
             <ChatScreen
               session={activeSession}
               user={user}
-              onBack={() => setScreen("home")}
+              onBack={() => setScreen("chat")}
             />
           )}
+
           {screen === "journal" && <JournalScreen user={user} />}
           {screen === "profile" && <ProfileScreen user={user} onLogout={handleLogout} />}
 
           <BottomNav
             items={navItems}
-            active={screen}
+            active={screen === "chat-detail" ? "chat" : screen}
             onChange={setScreen}
           />
         </>

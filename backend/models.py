@@ -40,6 +40,7 @@ class MatchRequest(Base):
     elder_id = Column(String, ForeignKey("users.id"))
     status = Column(String, default="pending") # pending, accepted, rejected
     resonance_score = Column(Float, nullable=True)
+    resonance_reason = Column(Text, nullable=True)
     created_at = Column(DateTime, default=get_utc_now)
 
 class JournalEntry(Base):
@@ -75,3 +76,10 @@ class Message(Base):
     sender_role = Column(String, nullable=False)
     text = Column(Text, nullable=False)
     created_at = Column(DateTime, default=get_utc_now)
+
+class DailyScore(Base):
+    __tablename__ = "daily_scores"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"))
+    score = Column(Integer, nullable=False) # 1-10 
+    date = Column(DateTime, default=get_utc_now)

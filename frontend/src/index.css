@@ -97,3 +97,77 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* Elder Friendly Mode - Aggressive Accessibility */
+.elder-friendly {
+  font-size: 1.375rem !important; /* 22px base */
+}
+
+/* Force almost everything to be large */
+.elder-friendly p, 
+.elder-friendly span, 
+.elder-friendly div,
+.elder-friendly label,
+.elder-friendly input,
+.elder-friendly textarea,
+.elder-friendly button {
+  font-size: 1.375rem !important; /* 22px */
+}
+
+/* Icons scaling */
+.elder-friendly svg {
+  transform: scale(1.4) !important;
+  transform-origin: center !important;
+}
+
+/* Headings */
+.elder-friendly h1 { font-size: 3.5rem !important; }
+.elder-friendly h2 { font-size: 2.75rem !important; }
+.elder-friendly h3 { font-size: 2.25rem !important; }
+.elder-friendly h4 { font-size: 2rem !important; }
+
+/* Override small text utilities */
+.elder-friendly .text-xs,
+.elder-friendly .text-sm,
+.elder-friendly .text-base,
+.elder-friendly .text-lg {
+  font-size: 1.375rem !important;
+}
+
+/* Buttons and Inputs */
+.elder-friendly .btn-primary,
+.elder-friendly .btn-secondary,
+.elder-friendly .btn-action-circle,
+.elder-friendly button {
+  padding-top: 1.5rem !important;
+  padding-bottom: 3.5rem !important; /* Extra height for buttons */
+  min-height: 80px !important;
+  border-width: 4px !important;
+}
+
+/* Special fix for the secondary buttons that might have smaller text */
+.elder-friendly .btn-secondary {
+  font-size: 1.5rem !important;
+}
+
+.elder-friendly input, 
+.elder-friendly textarea {
+  min-height: 80px !important;
+  padding: 1.5rem !important;
+}
+
+/* Bottom Nav - Extra Large */
+.elder-friendly .fixed.bottom-0 {
+  height: 120px !important;
+}
+
+.elder-friendly .fixed.bottom-0 button {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  height: 120px !important;
+}
+
+.elder-friendly .fixed.bottom-0 span {
+  font-size: 1.125rem !important; /* 18px labels in nav */
+  margin-top: 0.5rem !important;
+}

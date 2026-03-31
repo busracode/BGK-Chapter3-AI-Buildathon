@@ -9,9 +9,19 @@ export default function RegisterScreen({ role, onSubmit, onBack }) {
     age: "",
     city: "",
     current_mood_text: "",
+    current_mood_label: "nötr",
     password: "",
     picture_password: []
   });
+
+  const MOOD_OPTIONS = [
+    { key: "umut", label: "Mutlu", emoji: "😊" },
+    { key: "nötr", label: "Huzurlu", emoji: "😌" },
+    { key: "hüzün", label: "Üzgün", emoji: "😔" },
+    { key: "kaygı", label: "Kaygılı", emoji: "😟" },
+    { key: "kafa_karışıklığı", label: "Şaşkın", emoji: "🤔" },
+    { key: "yas", label: "Yasta", emoji: "🕯️" }
+  ];
 
   const [loading, setLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -94,6 +104,7 @@ export default function RegisterScreen({ role, onSubmit, onBack }) {
           city: formData.city || "Bilinmiyor",
           role: role,
           current_mood_text: formData.current_mood_text || "Belirtilmedi.",
+          current_mood_label: formData.current_mood_label,
           password: formData.password || null,
           picture_password: formData.picture_password.length > 0 ? formData.picture_password.join(",") : null
         })
@@ -144,6 +155,27 @@ export default function RegisterScreen({ role, onSubmit, onBack }) {
                 <input name="city" value={formData.city} onChange={handleChange} className="input-soft w-full" placeholder="Şehriniz" />
               </div>
             </div>
+            
+            <div className="space-y-4">
+              <label className="block text-sm font-black text-textMain opacity-60 uppercase">Şu anki Modunuzu Seçin</label>
+              <div className="grid grid-cols-3 gap-3">
+                {MOOD_OPTIONS.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, current_mood_label: m.key })}
+                    className={`flex flex-col items-center justify-center p-4 rounded-3xl border-4 transition-all active:scale-95
+                      ${formData.current_mood_label === m.key 
+                        ? 'border-grass bg-mintLight shadow-md scale-105' 
+                        : 'border-borderSoft bg-white/50 hover:bg-white'}`}
+                  >
+                    <span className="text-3xl mb-1">{m.emoji}</span>
+                    <span className="text-[10px] font-black uppercase text-textMid">{m.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-4">
               <label className="block text-sm font-black text-textMain opacity-60 uppercase">Bize Biraz Kendinizden Bahsedin</label>
               <textarea 
@@ -285,6 +317,30 @@ export default function RegisterScreen({ role, onSubmit, onBack }) {
                       className="input-soft flex-1 !py-8 !text-3xl font-black placeholder:opacity-30"
                     />
                     <SpeechCapture onResult={(val) => setFormData(p => ({...p, city: val}))} isLarge={true} />
+                  </div>
+                </div>
+
+                {/* Mod Seçimi */}
+                <div className="space-y-4 bg-mintLight/20 p-8 rounded-[40px] border-4 border-mintLight/40">
+                  <p className="text-xl font-black text-forest text-center mb-6 uppercase tracking-widest opacity-70">Şu anki Ruh Halinizi Seçin</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    {MOOD_OPTIONS.map((m) => (
+                      <button
+                        key={m.key}
+                        type="button"
+                        onClick={() => {
+                          setFormData({ ...formData, current_mood_label: m.key });
+                          speakText(`${m.label} olarak seçildi.`);
+                        }}
+                        className={`flex flex-col items-center justify-center p-6 rounded-[32px] border-4 transition-all active:scale-95 shadow-lg
+                          ${formData.current_mood_label === m.key 
+                            ? 'border-grass bg-white scale-105 ring-4 ring-grass/20' 
+                            : 'border-white bg-white/60 hover:bg-white'}`}
+                      >
+                        <span className="text-5xl mb-2">{m.emoji}</span>
+                        <span className="text-xs font-black uppercase text-grass">{m.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 

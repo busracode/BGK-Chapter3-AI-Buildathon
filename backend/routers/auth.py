@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from database import get_db
 from models import User
 from schemas import UserCreate, UserLogin, UserResponse
-from services.nlp_engine import analyze_emotion, extract_needs_summary
+from services.nlp_engine import analyze_emotion, extract_needs_summary, analyze_detailed_profile
 
 import random
 from routers.users import pwd_context
@@ -33,19 +33,30 @@ def normalize_turkish_chars(text: str) -> str:
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     try:
         try:
-            emotion_profile = await analyze_emotion(user_in.current_mood_text, user_in.role)
-            primary_emotion = emotion_profile.primary_emotion.value
-            experience_tags = ",".join(emotion_profile.experience_tags)
-            
-            if user_in.role == "genç":
-                personality_summary = await extract_needs_summary(user_in.current_mood_text)
+            if user_in.current_mood_label:
+                primary_emotion = user_in.current_mood_label
             else:
-                personality_summary = emotion_profile.summary
+                emotion_profile = await analyze_emotion(user_in.current_mood_text or "nötr", user_in.role)
+                primary_emotion = emotion_profile.primary_emotion.value
+
+            # Extract tags and summary from text if provided
+            if user_in.current_mood_text:
+                emotion_profile = await analyze_emotion(user_in.current_mood_text, user_in.role)
+                experience_tags = ",".join(emotion_profile.experience_tags)
+                result = await analyze_detailed_profile(user_in.current_mood_text, user_in.role)
+                personality_summary = result["summary"]
+                expertise_level = result["expertise"]
+            else:
+                experience_tags = ""
+                personality_summary = "Yeni üye."
+                expertise_level = "Genel"
                 
         except Exception:
-            primary_emotion = "nötr"
+            if not user_in.current_mood_label:
+                primary_emotion = "nötr"
             experience_tags = ""
             personality_summary = ""
+            expertise_level = "Genel"
 
         if getattr(user_in, 'username', None):
             base_username = normalize_turkish_chars(user_in.username.strip().replace(" ", ""))
@@ -80,6 +91,7 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
             primary_emotion=primary_emotion,
             experience_tags=experience_tags,
             personality_summary=personality_summary,
+            expertise_level=expertise_level,
             hashed_password=hashed_password,
             picture_password=picture_password
         )

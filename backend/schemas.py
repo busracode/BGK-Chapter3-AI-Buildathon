@@ -22,6 +22,7 @@ class UserCreate(BaseModel):
     personality_summary: Optional[str] = None
     password: Optional[str] = None # For young
     picture_password: Optional[str] = None # For elderly (comma-separated IDs)
+    current_mood_label: Optional[str] = None # For direct emoji selection
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -47,7 +48,7 @@ class UserResponse(BaseModel):
     surname: Optional[str] = None
     age: int
     city: Optional[str] = None
-    role: str
+    role: str # "genç" or "büyük"
     primary_emotion: Optional[str] = None
     experience_tags: Optional[str] = None
     hobbies: Optional[str] = None
@@ -57,6 +58,8 @@ class UserResponse(BaseModel):
     personality_summary: Optional[str] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
+    session_count: int = 0
+    journal_count: int = 0
     created_at: datetime
     updated_at: datetime
     
@@ -75,12 +78,17 @@ class ElderProfileExtract:
     expertise_level: str
     personality_summary: str
 
+class MoodUpdate(BaseModel):
+    mood_text: Optional[str] = ""
+    mood_label: Optional[str] = None
+
 class MatchRequestSchema(BaseModel):
     id: str
     young_id: str
     elder_id: str
     status: str
     resonance_score: Optional[float] = None
+    resonance_reason: Optional[str] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -110,3 +118,6 @@ class AlertResponse(BaseModel):
 class UserStats(BaseModel):
     session_count: int
     journal_count: int
+
+class DailyScoreRequest(BaseModel):
+    score: int # 1-10

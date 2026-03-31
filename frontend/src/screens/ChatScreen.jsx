@@ -7,6 +7,7 @@ export default function ChatScreen({ session, user, onBack }) {
   const [voiceMode, setVoiceMode] = useState(user?.role === "büyük");
   const [riskAlert, setRiskAlert] = useState(false);
   const recognitionRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const speakText = (text) => {
     window.speechSynthesis.cancel(); // Stop any current speaking
@@ -57,6 +58,10 @@ export default function ChatScreen({ session, user, onBack }) {
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [session?.session_id]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSend = async (messageText = input) => {
     if (!messageText || !user) return;
@@ -224,6 +229,7 @@ export default function ChatScreen({ session, user, onBack }) {
             </div>
           </div>
         ))}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}

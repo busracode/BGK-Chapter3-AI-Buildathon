@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 
-# We will use sqlite for now since no postgres instance is readily available, but the code had asyncpg, so we use aiosqlite
-DATABASE_URL = "sqlite+aiosqlite:///./hayat_koprusu_v2.db"
+# Using the requested local SQLite database hayat_koprusu.db
+DATABASE_URL = "sqlite+aiosqlite:///./hayat_koprusu.db"
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
