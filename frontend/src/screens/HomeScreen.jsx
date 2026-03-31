@@ -18,17 +18,10 @@ export default function HomeScreen({ user, setUser, onStartChat, onOpenDiscovery
   
   const chartData = useMemo(() => {
     const data = [0, 0, 0, 0, 0, 0, 0];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    weeklyScores.forEach(item => {
-      const itemDate = new Date(item.date);
-      itemDate.setHours(0, 0, 0, 0);
-      const diffTime = today - itemDate;
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays >= 0 && diffDays < 7) {
-        data[6 - diffDays] = item.score;
+    // Backend scores are ordered oldest first. Fill from left to right.
+    weeklyScores.forEach((item, index) => {
+      if (index < 7) {
+        data[index] = item.score;
       }
     });
     return data;
@@ -488,32 +481,33 @@ export default function HomeScreen({ user, setUser, onStartChat, onOpenDiscovery
             </button>
           </div>
 
-          <div className="h-48 w-full relative flex items-end justify-between gap-2 pt-10">
-            {/* Simple SVG Chart */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-              <polyline
-                fill="none"
-                stroke="#B8EDCC"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                points={
-                  chartData.map((score, i) => {
-                    const x = (i / 6) * 100 + "%";
-                    const y = 100 - (score * 8) + "%"; // Scale 0-10 to 0-80% height for padding
-                    return `${i === 0 ? '' : ' '}${x},${y}`;
-                  }).join('')
-                }
-              />
-            </svg>
-            
+          <div className="h-56 w-full relative flex items-end justify-between gap-1 sm:gap-2 pt-8 pb-2">
+            {/* Arka plan referans çizgileri */}
+            <div className="absolute inset-0 flex flex-col justify-between pt-10 pb-8 pointer-events-none opacity-20">
+              <div className="border-t-2 border-dashed border-grass w-full relative"><span className="absolute -top-4 right-0 text-[10px] font-black text-textMain">10 Puan</span></div>
+              <div className="border-t-2 border-dashed border-grass w-full relative"><span className="absolute -top-4 right-0 text-[10px] font-black text-textMain">5 Puan</span></div>
+              <div className="border-t-2 border-solid border-grass w-full relative"><span className="absolute -top-4 right-0 text-[10px] font-black text-textMain">0 Puan</span></div>
+            </div>
+
             {chartData.map((score, i) => (
-              <div key={i} className="flex flex-col items-center flex-1 z-10 group">
-                <div 
-                  className={`w-2 rounded-full transition-all duration-500 bg-grass/20 group-hover:bg-grass`}
-                  style={{ height: `${score * 10}%`, minHeight: '4px' }}
-                ></div>
-                <span className="text-[10px] font-black text-textMuted mt-2 uppercase">{i === 6 ? 'Bugün' : `${i + 1}. Gün`}</span>
+              <div key={i} className="flex flex-col items-center justify-end flex-1 h-full z-10 group relative mt-4">
+                {/* Score tooltip on hover */}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 bg-textMain text-white text-[12px] font-bold py-1 px-3 rounded-lg shadow-xl z-20 pointer-events-none">
+                  {score}/10
+                </div>
+                
+                {/* Bar wrapper */}
+                <div className="flex-1 w-full max-w-[20px] sm:max-w-[28px] bg-mintLight/40 rounded-t-xl relative overflow-hidden shadow-inner border border-mintBorder/40">
+                  {/* Fill relative to score */}
+                  <div 
+                    className="absolute bottom-0 left-0 right-0 bg-grass transition-all duration-1000 ease-out rounded-t-md group-hover:bg-textMain group-hover:shadow-[0_0_12px_rgba(27,94,59,0.3)]"
+                    style={{ height: `${score * 10}%`, minHeight: score > 0 ? '6px' : '0' }}
+                  ></div>
+                </div>
+                
+                <span className="text-[9px] sm:text-[11px] font-black text-textMuted mt-3 uppercase whitespace-nowrap">
+                  {`${i + 1}. Gün`}
+                </span>
               </div>
             ))}
           </div>

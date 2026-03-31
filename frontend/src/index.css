@@ -30,6 +30,9 @@
 }
 
 @layer base {
+  html {
+    font-size: 14px; /* Scale root down from 16px to proportionally shrink tailwind rems */
+  }
   body {
     background-color: var(--color-warm-bg);
     color: var(--color-text-main);
@@ -48,29 +51,29 @@
   }
 
   .btn-primary {
-    @apply bg-grass text-white rounded-[24px] font-bold flex justify-center items-center transition-all duration-300 hover:opacity-95 hover:shadow-xl active:scale-95 py-4 px-8 text-lg shadow-md border-b-[4px] border-forest;
+    @apply bg-grass text-white rounded-[20px] font-bold flex justify-center items-center transition-all duration-300 hover:opacity-95 hover:shadow-xl active:scale-95 py-3.5 px-6 text-base shadow-md border-b-[3px] border-forest;
     font-family: 'Nunito', sans-serif;
   }
   
   .btn-secondary {
-    @apply bg-mintLight text-grass rounded-[24px] font-bold flex justify-center items-center transition-all duration-300 py-3 px-6 text-base border-2 border-mintBorder shadow-sm;
+    @apply bg-mintLight text-grass rounded-[20px] font-bold flex justify-center items-center transition-all duration-300 py-2.5 px-5 text-sm border-2 border-mintBorder shadow-sm hover:bg-mintMid;
   }
   
   .card-soft {
-    @apply bg-white border-2 border-borderSoft rounded-[24px] relative overflow-hidden transition-all duration-300 hover:shadow-lg;
+    @apply bg-white border-2 border-borderSoft rounded-[20px] relative overflow-hidden transition-all duration-300 hover:shadow-md;
   }
   
   .input-soft {
-    @apply bg-white border-2 border-mintMid rounded-[16px] focus:outline-none focus:border-grass focus:ring-2 focus:ring-mintLight py-3 px-5 text-base font-bold;
+    @apply bg-white border-2 border-mintMid rounded-[12px] focus:outline-none focus:border-grass focus:ring-2 focus:ring-mintLight py-2.5 px-4 text-sm font-bold;
   }
   
   .pill-badge {
-    @apply rounded-full px-4 py-2 text-sm font-bold;
+    @apply rounded-full px-3 py-1.5 text-xs font-bold;
   }
 
   /* Accessibility Focused Button for Speaking/Listening */
   .btn-action-circle {
-    @apply w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-90 border-2;
+    @apply w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-90 border-2;
   }
 }
 
@@ -100,7 +103,7 @@
 
 /* Elder Friendly Mode - Aggressive Accessibility */
 .elder-friendly {
-  font-size: 1.375rem !important; /* 22px base */
+  font-size: 22px !important; 
 }
 
 /* Force almost everything to be large */
@@ -111,7 +114,7 @@
 .elder-friendly input,
 .elder-friendly textarea,
 .elder-friendly button {
-  font-size: 1.375rem !important; /* 22px */
+  font-size: 22px !important; 
 }
 
 /* Icons scaling */
@@ -121,17 +124,17 @@
 }
 
 /* Headings */
-.elder-friendly h1 { font-size: 3.5rem !important; }
-.elder-friendly h2 { font-size: 2.75rem !important; }
-.elder-friendly h3 { font-size: 2.25rem !important; }
-.elder-friendly h4 { font-size: 2rem !important; }
+.elder-friendly h1 { font-size: 56px !important; }
+.elder-friendly h2 { font-size: 44px !important; }
+.elder-friendly h3 { font-size: 36px !important; }
+.elder-friendly h4 { font-size: 32px !important; }
 
 /* Override small text utilities */
 .elder-friendly .text-xs,
 .elder-friendly .text-sm,
 .elder-friendly .text-base,
 .elder-friendly .text-lg {
-  font-size: 1.375rem !important;
+  font-size: 22px !important;
 }
 
 /* Buttons and Inputs */
@@ -139,21 +142,21 @@
 .elder-friendly .btn-secondary,
 .elder-friendly .btn-action-circle,
 .elder-friendly button {
-  padding-top: 1.5rem !important;
-  padding-bottom: 3.5rem !important; /* Extra height for buttons */
+  padding-top: 24px !important;
+  padding-bottom: 56px !important; /* Extra height for buttons */
   min-height: 80px !important;
   border-width: 4px !important;
 }
 
 /* Special fix for the secondary buttons that might have smaller text */
 .elder-friendly .btn-secondary {
-  font-size: 1.5rem !important;
+  font-size: 24px !important;
 }
 
 .elder-friendly input, 
 .elder-friendly textarea {
   min-height: 80px !important;
-  padding: 1.5rem !important;
+  padding: 24px !important;
 }
 
 /* Bottom Nav - Extra Large */
@@ -168,6 +171,6 @@
 }
 
 .elder-friendly .fixed.bottom-0 span {
-  font-size: 1.125rem !important; /* 18px labels in nav */
-  margin-top: 0.5rem !important;
+  font-size: 18px !important; 
+  margin-top: 8px !important;
 }
