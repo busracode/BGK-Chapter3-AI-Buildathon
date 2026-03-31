@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export default function HomeScreen({ user, setUser, onStartChat, onOpenDiscovery }) {
   const [match, setMatch] = useState(null);
@@ -15,6 +15,24 @@ export default function HomeScreen({ user, setUser, onStartChat, onOpenDiscovery
   const [isSubmittingScore, setIsSubmittingScore] = useState(false);
 
   const isBüyük = user?.role === "büyük";
+  
+  const chartData = useMemo(() => {
+    const data = [0, 0, 0, 0, 0, 0, 0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    weeklyScores.forEach(item => {
+      const itemDate = new Date(item.date);
+      itemDate.setHours(0, 0, 0, 0);
+      const diffTime = today - itemDate;
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays >= 0 && diffDays < 7) {
+        data[6 - diffDays] = item.score;
+      }
+    });
+    return data;
+  }, [weeklyScores]);
   
   const speakText = (text) => {
     if (!isBüyük) return;
@@ -480,23 +498,22 @@ export default function HomeScreen({ user, setUser, onStartChat, onOpenDiscovery
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 points={
-                  [0,1,2,3,4,5,6].map(i => {
-                    const s = weeklyScores[i]?.score || 0;
+                  chartData.map((score, i) => {
                     const x = (i / 6) * 100 + "%";
-                    const y = 100 - (s * 8) + "%"; // Scale 0-10 to 0-80% height for padding
+                    const y = 100 - (score * 8) + "%"; // Scale 0-10 to 0-80% height for padding
                     return `${i === 0 ? '' : ' '}${x},${y}`;
                   }).join('')
                 }
               />
             </svg>
             
-            {[0,1,2,3,4,5,6].map(i => (
+            {chartData.map((score, i) => (
               <div key={i} className="flex flex-col items-center flex-1 z-10 group">
                 <div 
                   className={`w-2 rounded-full transition-all duration-500 bg-grass/20 group-hover:bg-grass`}
-                  style={{ height: `${(weeklyScores[i]?.score || 0) * 10}%`, minHeight: '4px' }}
+                  style={{ height: `${score * 10}%`, minHeight: '4px' }}
                 ></div>
-                <span className="text-[10px] font-black text-textMuted mt-2 uppercase">{i + 1}. GÜN</span>
+                <span className="text-[10px] font-black text-textMuted mt-2 uppercase">{i === 6 ? 'Bugün' : `${i + 1}. Gün`}</span>
               </div>
             ))}
           </div>
