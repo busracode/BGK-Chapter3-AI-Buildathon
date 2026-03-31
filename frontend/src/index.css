@@ -164,6 +164,11 @@
   height: 120px !important;
 }
 
+/* Prevent chart labels from blowing up and breaking grid logic */
+.elder-friendly .chart-label {
+  font-size: 14px !important;
+}
+
 .elder-friendly .fixed.bottom-0 button {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
