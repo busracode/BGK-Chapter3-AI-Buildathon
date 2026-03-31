@@ -2,7 +2,7 @@
 > Nesilleri birbirine bağlayan, yapay zeka destekli akıllı mentörlük ve refakat platformu.
 
 [![🌐 Canlı Demo](https://img.shields.io/badge/🌐%20Canlı%20Demo-bgk--chapter3--ai--buildathon.vercel.app-4CAF50?style=for-the-badge&logo=vercel&logoColor=white)](https://bgk-chapter3-ai-buildathon.vercel.app/)
-[Demo Videoyu İzlemek İçin Tıklayın]([https://www.youtube.com/watch?v=VİDEO_ID](https://youtu.be/SLz_BALeY0Q))
+[Demo Videoyu İzlemek İçin Tıklayın]([https://www.youtube.com/watch?v=SLz_BALeY0Q])
 
 ---
 
