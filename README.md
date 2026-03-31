@@ -1,9 +1,11 @@
 # 🌳 Hayat Ağacı — Tree of Life
-
 > Nesilleri birbirine bağlayan, yapay zeka destekli akıllı mentörlük ve refakat platformu.
 
-## 🌟 Proje Vizyonu
+[![🌐 Canlı Demo](https://img.shields.io/badge/🌐%20Canlı%20Demo-bgk--chapter3--ai--buildathon.vercel.app-4CAF50?style=for-the-badge&logo=vercel&logoColor=white)](https://bgk-chapter3-ai-buildathon.vercel.app/)
 
+---
+
+## 🌟 Proje Vizyonu
 **Hayat Ağacı**, teknolojiyi dışlayıcı değil, kapsayıcı bir araç olarak kullanarak gençlerin dinamizmi ile yaşlıların hayat tecrübesini buluşturur. Yapay zeka, bu köprüde hem bir **akıllı rehber** hem de bir **güvenlik nöbetçisi** görevini üstlenir.
 
 ## 🛠️ Uygulama Özellikleri
@@ -38,7 +40,6 @@
 - **Acil Durum Kişisi**: Yaşlı kullanıcılar için hızlı erişilebilir acil durum iletişim bilgileri.
 
 ## 🔧 Teknik Mimari
-
 - **Frontend**: React (Vite) + Tailwind CSS + Framer Motion.
 - **Backend**: FastAPI (Python) + SQLAlchemy.
 - **Zeka Katmanı**: NLP ve Duygu Analizi modelleri.
@@ -65,6 +66,4 @@ uvicorn main:app --reload
 ```
 
 ---
-
-🔗 **İletişim**: [hayatagaci.app](https://hayatagaci.app)
-
+🔗
