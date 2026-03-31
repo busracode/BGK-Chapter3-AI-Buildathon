@@ -37,7 +37,7 @@
     margin: 0;
     padding: 0;
     -webkit-font-smoothing: antialiased;
-    font-size: 1.25rem; /* Increased base font size */
+    font-size: 1rem; /* standard size */
   }
 }
 
@@ -48,29 +48,29 @@
   }
 
   .btn-primary {
-    @apply bg-grass text-white rounded-[28px] font-black flex justify-center items-center transition-all duration-300 hover:opacity-95 hover:shadow-2xl active:scale-90 py-6 px-10 text-2xl shadow-lg border-b-[6px] border-forest;
+    @apply bg-grass text-white rounded-[24px] font-bold flex justify-center items-center transition-all duration-300 hover:opacity-95 hover:shadow-xl active:scale-95 py-4 px-8 text-lg shadow-md border-b-[4px] border-forest;
     font-family: 'Nunito', sans-serif;
   }
   
   .btn-secondary {
-    @apply bg-mintLight text-grass rounded-[28px] font-black flex justify-center items-center transition-all duration-300 py-5 px-8 text-xl border-2 border-mintBorder shadow-sm;
+    @apply bg-mintLight text-grass rounded-[24px] font-bold flex justify-center items-center transition-all duration-300 py-3 px-6 text-base border-2 border-mintBorder shadow-sm;
   }
   
   .card-soft {
-    @apply bg-white border-2 border-borderSoft rounded-[36px] relative overflow-hidden transition-all duration-300 hover:shadow-2xl;
+    @apply bg-white border-2 border-borderSoft rounded-[24px] relative overflow-hidden transition-all duration-300 hover:shadow-lg;
   }
   
   .input-soft {
-    @apply bg-white border-2 border-mintMid rounded-[24px] focus:outline-none focus:border-grass focus:ring-4 focus:ring-grass py-5 px-8 text-xl font-bold;
+    @apply bg-white border-2 border-mintMid rounded-[16px] focus:outline-none focus:border-grass focus:ring-2 focus:ring-mintLight py-3 px-5 text-base font-bold;
   }
   
   .pill-badge {
-    @apply rounded-full px-6 py-3 text-lg font-black;
+    @apply rounded-full px-4 py-2 text-sm font-bold;
   }
 
   /* Accessibility Focused Button for Speaking/Listening */
   .btn-action-circle {
-    @apply w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-md active:scale-90 border-2;
+    @apply w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-sm active:scale-90 border-2;
   }
 }
 

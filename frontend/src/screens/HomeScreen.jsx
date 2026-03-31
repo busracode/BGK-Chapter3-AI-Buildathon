@@ -308,9 +308,9 @@ export default function HomeScreen({ user, setUser, onStartChat, onOpenDiscovery
         <div className="flex justify-between items-end relative z-10">
           <div>
             <p className="font-bold text-textMuted tracking-wide text-sm mb-1 uppercase opacity-80">Hoş Geldin</p>
-            <h2 className="text-4xl font-serif text-textMain tracking-tight leading-tight">{user?.name}</h2>
+            <h2 className="text-2xl md:text-3xl font-serif text-textMain tracking-tight leading-tight">{user?.name}</h2>
           </div>
-          <div className="w-12 h-12 bg-grass rounded-full flex items-center justify-center font-bold text-white text-xl shadow-sm">
+          <div className="w-10 h-10 bg-grass rounded-full flex items-center justify-center font-bold text-white text-lg shadow-sm">
             {user?.name?.[0] || "U"}
           </div>
         </div>
@@ -334,7 +334,7 @@ export default function HomeScreen({ user, setUser, onStartChat, onOpenDiscovery
                 </div>
               </div>
               
-              <h4 className="text-3xl font-serif font-black text-textMain mb-3 leading-tight">{match.name || "Eşleşme Bekleniyor"}</h4>
+              <h4 className="text-xl md:text-2xl font-serif font-black text-textMain mb-3 leading-tight">{match.name || "Eşleşme Bekleniyor"}</h4>
               <p className="font-bold text-textMid text-base mb-6 leading-relaxed bg-warmBg p-4 rounded-2xl border border-borderSoft shadow-inner">
                 {match.description}
               </p>
@@ -546,12 +546,12 @@ export default function HomeScreen({ user, setUser, onStartChat, onOpenDiscovery
         {/* Mood Card */}
         <div className={`card-soft group ${mood.color} ${mood.border} p-5 border-2 flex items-center justify-between transition-all hover:scale-[1.02] cursor-default mb-4 relative overflow-hidden`}>
           <div className="flex items-center gap-4 relative z-10">
-            <div className="text-4xl bg-white w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm border border-white">
+            <div className="text-3xl bg-white w-12 h-12 rounded-xl flex items-center justify-center shadow-sm border border-white">
               {mood.emoji}
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-widest text-textMuted opacity-70">Günün Modu</p>
-              <h4 className={`text-2xl font-serif font-black ${mood.text}`}>{mood.label}</h4>
+              <h4 className={`text-xl font-serif font-black ${mood.text}`}>{mood.label}</h4>
             </div>
           </div>
           
@@ -579,7 +579,7 @@ export default function HomeScreen({ user, setUser, onStartChat, onOpenDiscovery
                   onClick={() => handleUpdateMood(m.key)}
                   className="flex flex-col items-center justify-center p-6 bg-warmBg border-2 border-borderSoft rounded-[32px] hover:border-grass hover:bg-white transition-all active:scale-95 group shadow-sm hover:shadow-md"
                 >
-                  <span className="text-6xl mb-3 group-hover:scale-125 transition-transform duration-300">{m.emoji}</span>
+                  <span className="text-4xl mb-2 group-hover:scale-125 transition-transform duration-300">{m.emoji}</span>
                   <span className="font-black text-textMid uppercase tracking-tight text-sm opacity-70 group-hover:opacity-100 group-hover:text-grass">{m.label}</span>
                 </button>
               ))}
