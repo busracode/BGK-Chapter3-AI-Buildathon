@@ -67,4 +67,4 @@ uvicorn main:app --reload
 ```
 
 ---
-🔗
+🔗[📺 Demo Videosunu İzlemek İçin Tıklayın](https://www.youtube.com/watch?v=SLz_BALeY0Q)
