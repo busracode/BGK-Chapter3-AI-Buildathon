@@ -6,8 +6,14 @@
 
 ---
 
-## 🌟 Proje Vizyonu
-**Hayat Ağacı**, teknolojiyi dışlayıcı değil, kapsayıcı bir araç olarak kullanarak gençlerin dinamizmi ile yaşlıların hayat tecrübesini buluşturur. Yapay zeka, bu köprüde hem bir **akıllı rehber** hem de bir **güvenlik nöbetçisi** görevini üstlenir.
+## 📌 Problem ve Vizyon
+
+Günümüz toplumunda iki büyük sosyal problem, aslında birbirinin ilacıdır:
+
+1. **Gençlerin Rehberlik İhtiyacı:** Kariyer, kişisel gelişim ve hayatın karmaşasında tecrübesizlikten kaynaklanan belirsizlik ve yalnızlık hissi.
+2. **Yaşlıların Sosyal İzolasyonu:** Hayat tecrübesini aktaracak mecra bulamama ve buna bağlı olarak gelişen "işe yaramazlık" veya "boşa yaşama" duygusu.
+
+**Çözüm:** *Hayat Ağacı*, bu iki problemi "birbirine kırdırarak" çözer. Yaşlıların bilgelik ihtiyacını gençlerin dinamizmiyle buluşturan, yapay zeka ile optimize edilmiş bir köprü inşa eder.
 
 ## 🛠️ Uygulama Özellikleri
 
