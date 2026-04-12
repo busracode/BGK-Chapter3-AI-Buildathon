@@ -52,6 +52,12 @@ Günümüz toplumunda iki büyük sosyal problem, aslında birbirinin ilacıdır
 - **Zeka Katmanı**: NLP ve Duygu Analizi modelleri.
 - **Veritabanı**: SQLite (Yerel) / PostgreSQL (Üretim).
 
+## Kullanılan AI toolları
+- Code destekli Antigravity IDE
+- NLP analizi için GROQ API
+- Fikir aşaması Gemini
+- Deployment aşaması Claude
+  
 ## 📦 Başlangıç
 
 ### Gerekli Kurulumlar
